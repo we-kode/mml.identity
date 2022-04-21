@@ -11,7 +11,7 @@ services:
       - ${PORT}:5051
     volumes:
       - ${VOL_CERTS}:/etc/ssl/certs:ro
-      - ${APPSETTINGS}:/appsettings:ro
+      - ${APPSETTINGS}:/configs/appsettings.json:ro
       - /etc/localtime:/etc/localtime:ro
     networks:
       - wekode.mml
