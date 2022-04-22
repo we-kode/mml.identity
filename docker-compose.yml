@@ -7,8 +7,6 @@ services:
     container_name: wekode.mml.identity
     restart: always
     user: ${UID}:${GUID}
-    ports:
-      - ${PORT}:5051
     volumes:
       - ${VOL_CERTS}:/etc/ssl/certs:ro
       - ${APPSETTINGS}:/configs/appsettings.json:ro
