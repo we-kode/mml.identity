@@ -4,9 +4,12 @@ using Identity.Application.Models;
 using Identity.Contracts;
 using Identity.Filters;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Identity.Controllers
 {
@@ -112,15 +115,11 @@ namespace Identity.Controllers
     }
 
     /// <summary>
-    /// Change username.
+    /// Updates user
     /// </summary>
     /// <param name="id">The id of user to be changed</param>
-    /// <param name="request">New Userinformation to store.</param>
-    /// <response code="400">the username is not a valid email.</response>
-    /// <response code="404">If user does not exists already.</response>
+    /// <param name="request">New information to store.</param>
     [HttpPost("{id:long}")]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [Authorize(Policy = Roles.ADMIN)]
     [ServiceFilter(typeof(UserExistsFilter))]
     public async Task<IActionResult> Post(long id, [FromBody] UserCreationRequest request)

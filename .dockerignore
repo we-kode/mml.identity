@@ -26,5 +26,5 @@
 **/*.appsettings.*.json
 **/launchSettings.json
 LICENSE
-README.md
 .editorconfig
+README.md

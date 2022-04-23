@@ -5,20 +5,25 @@ using Identity.DBContext;
 using Identity.Filters;
 using Identity.Infrastructure;
 using Identity.Middleware;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
 using Quartz;
 using ScottBrady91.AspNetCore.Identity;
+using System;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration
-    .AddJsonFile("/configs/appsettings.json", true, true)
-    .AddJsonFile("appsettings.json", true, true);
+    .AddJsonFile("/configs/appsettings.json", true, true);
 
 #region services
 // Add services to the container.

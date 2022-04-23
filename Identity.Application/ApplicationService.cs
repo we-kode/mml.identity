@@ -1,5 +1,7 @@
 ﻿using Identity.Application.Contracts;
 using Identity.Application.Models;
+using System;
+using System.Threading.Tasks;
 
 namespace Identity.Application
 {

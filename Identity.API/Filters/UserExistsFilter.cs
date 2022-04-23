@@ -1,6 +1,6 @@
 ﻿using Identity.Application.Contracts;
-using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace Identity.Filters
 {

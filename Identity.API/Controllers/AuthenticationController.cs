@@ -4,11 +4,15 @@ using Identity.Extensions;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
+using System;
+using System.Collections.Generic;
 using System.Security.Claims;
+using System.Threading.Tasks;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace Identity.Controllers
@@ -30,9 +34,6 @@ namespace Identity.Controllers
     /// <returns>The bearer token on successful signin.</returns>
     /// <response code="401">If authorization fails.</response>
     /// <response code="400">If grant type is not supported.</response>
-    /// <response code="403">If token expired or 2fa code is invalid.</response>
-    /// <response code="493">If 2fa is not configured.</response>
-    /// <response code="495">If 2fa token is not provided yet.</response>
     [HttpPost("token")]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

@@ -2,6 +2,10 @@
 using Identity.Application.Contracts;
 using Identity.Application.Models;
 using Microsoft.AspNetCore.Identity;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Identity.Infrastructure
 {
@@ -109,8 +113,8 @@ namespace Identity.Infrastructure
       var user = await _userManager.FindByIdAsync(id.ToString()).ConfigureAwait(false);
       user.EmailConfirmed = false;
       await _userManager.UpdateAsync(user).ConfigureAwait(false);
-      await _userManager.RemovePasswordAsync(user).ConfigureAwait (false);
-      await _userManager.AddPasswordAsync(user, changedPassword).ConfigureAwait (false);
+      await _userManager.RemovePasswordAsync(user).ConfigureAwait(false);
+      await _userManager.AddPasswordAsync(user, changedPassword).ConfigureAwait(false);
     }
 
     public async Task<bool> IsActive(long userId)
