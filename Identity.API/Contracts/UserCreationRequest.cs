@@ -24,7 +24,7 @@ namespace Identity.Contracts
     /// </summary>
     /// <param name="name">The username</param>
     /// <param name="password">The password</param>
-    public UserCreationRequest(string name, string password = null)
+    public UserCreationRequest(string name, string? password = null)
     {
       Name = name;
       Password = password;
