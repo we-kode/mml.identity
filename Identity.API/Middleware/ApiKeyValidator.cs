@@ -7,6 +7,7 @@
 
     private const string APP_KEY_HEADER = "App-Key";
     private const string ADMIN_APP_KEY = "ADMIN_APP_KEY";
+    private const string APP_KEY = "ADMIN_APP_KEY";
 
     public ApiKeyValidator(RequestDelegate next, IConfiguration configuration)
     {
@@ -23,7 +24,8 @@
       }
 
       var isAdminAppRequest = context.Request.Headers[APP_KEY_HEADER] == _configuration.GetValue(ADMIN_APP_KEY, string.Empty);
-      if (!isAdminAppRequest)
+      var isAppRequest = context.Request.Headers[APP_KEY_HEADER] == _configuration.GetValue(APP_KEY, string.Empty);
+      if (!isAdminAppRequest && !isAppRequest)
       {
         await _UnauthorizedRespone(context);
         return;

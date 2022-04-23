@@ -115,6 +115,7 @@ builder.Services.AddOpenIddict()
     {
       options.AllowPasswordFlow();
       options.AllowRefreshTokenFlow();
+      options.AllowClientCredentialsFlow();
 
       options.SetTokenEndpointUris("/api/v1.0/identity/connect/token")
              .SetUserinfoEndpointUris("/api/v1.0/identity/connect/userinfo");

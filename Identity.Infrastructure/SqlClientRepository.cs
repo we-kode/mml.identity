@@ -2,6 +2,7 @@
 using Identity.Application.Models;
 using Identity.DBContext;
 using OpenIddict.Abstractions;
+using Identity.DBContext.Models;
 
 namespace Identity.Infrastructure
 {
@@ -47,6 +48,35 @@ namespace Identity.Infrastructure
       clientToBeUpdated.DisplayName = client.DisplayName;
       context.SaveChanges();
       return true;
+    }
+
+    string? IClientRepository.GetPublicKey(string clientId)
+    {
+      using var context = _contextFactory();
+      return context.Applications.FirstOrDefault(app => app.ClientId == clientId)?.PublicKey;
+    }
+
+    void IClientRepository.CreateClient(string clientId, string clientSecret, string b64PublicKey)
+    {
+      using var context = _contextFactory();
+      var client = context.Applications.FirstOrDefault(app => app.ClientId == clientId);
+      if (client != null)
+      {
+        throw new ArgumentException($"Client with id {clientId} exists already");
+      }
+      client = new OpenIddictClientApplication
+      {
+        ClientId = clientId,
+        ClientSecret = clientSecret,
+        PublicKey = b64PublicKey,
+        Permissions =
+        new {
+          OpenIddictConstants.Permissions.Endpoints.Token,
+          OpenIddictConstants.Permissions.GrantTypes.ClientCredentials
+        }.ToString()
+      };
+      context.Applications.Add(client);
+      context.SaveChanges();
     }
   }
 }

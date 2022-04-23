@@ -2,6 +2,7 @@
 using Identity.Application;
 using Identity.Application.Contracts;
 using Identity.Application.Models;
+using Identity.Application.Services;
 using Identity.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,11 +17,13 @@ namespace Identity.Controllers
   public class ClientController : ControllerBase
   {
     private readonly IClientRepository clientRepository;
+    private readonly ClientApplicationService _service;
     private readonly IMapper _mapper;
 
-    public ClientController(IClientRepository clientRepository, IMapper mapper)
+    public ClientController(IClientRepository clientRepository, ClientApplicationService service, IMapper mapper)
     {
       this.clientRepository = clientRepository;
+      _service = service;
       _mapper = mapper;
     }
 
@@ -61,6 +64,21 @@ namespace Identity.Controllers
         return BadRequest();
       }
       return Ok();
+    }
+
+    /// <summary>
+    /// Registers a new client
+    /// </summary>
+    /// <returns>The new application client</returns>
+    /// <response code="400">If update fails or information are invalid.</response>
+    [HttpPost("register")]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [AllowAnonymous]
+    // check token middleware
+    public ApplicationClient Register([FromBody] RegisterClientRequest request)
+    {
+      var client = _service.CreateClient(request.Base64PublicKey);
+      return client;
     }
 
   }

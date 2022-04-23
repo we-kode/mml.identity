@@ -9,6 +9,9 @@ using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace Identity.Controllers
@@ -18,10 +21,12 @@ namespace Identity.Controllers
   public class AuthenticationController : Controller
   {
     private readonly IIdentityRepository _identityRepository;
+    private readonly IClientRepository _clientRepository;
 
-    public AuthenticationController(IIdentityRepository identityRepository)
+    public AuthenticationController(IIdentityRepository identityRepository, IClientRepository clientRepository)
     {
       _identityRepository = identityRepository;
+      _clientRepository = clientRepository;
     }
 
     /// <summary>
@@ -30,9 +35,6 @@ namespace Identity.Controllers
     /// <returns>The bearer token on successful signin.</returns>
     /// <response code="401">If authorization fails.</response>
     /// <response code="400">If grant type is not supported.</response>
-    /// <response code="403">If token expired or 2fa code is invalid.</response>
-    /// <response code="493">If 2fa is not configured.</response>
-    /// <response code="495">If 2fa token is not provided yet.</response>
     [HttpPost("token")]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -112,6 +114,46 @@ namespace Identity.Controllers
 
         // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
         return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+      }
+
+      if (request.IsClientCredentialsGrantType())
+      {
+        if(string.IsNullOrEmpty(request.CodeChallenge))
+        {
+          return Unauthorized();
+        }
+
+        // check if signature is valid with public key saved for client id
+        var pubKeyStringB64 = _clientRepository.GetPublicKey(request.ClientId!);
+        if (string.IsNullOrEmpty(pubKeyStringB64))
+        {
+          return Unauthorized();
+        }
+
+        var pubKey = Convert.FromBase64String(pubKeyStringB64);
+        var certificate = new X509Certificate2(pubKey);
+
+        using var rsa = certificate.GetRSAPublicKey();
+        /*
+         * signature must be made over the following string to be marked as valid
+         * { "clientId" : "<id of client>", "clientSecret" : "<secret of client>", "grant_type" : "client_credentials" }
+         */
+        var content = $"{{ \"clientId\" : \"{request.ClientId}\", \"clientSecret\" : \"{request.ClientSecret}\", \"grant_type\" : \"client_credentials\" }}";
+        var isValidSignature = rsa!.VerifyData(Encoding.UTF8.GetBytes(content), Encoding.UTF8.GetBytes(request.CodeChallenge!), HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1);
+        if (!isValidSignature)
+        {
+          return Unauthorized();
+        }
+
+        var client = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+
+        client.AddClaim(Claims.Subject, request.ClientId!, Destinations.AccessToken);
+        client.AddClaim(Claims.Role, Roles.CLIENT, Destinations.AccessToken);
+
+        var claimsPrincipal = new ClaimsPrincipal(client);
+        claimsPrincipal.SetScopes(request.GetScopes());
+
+        return SignIn(claimsPrincipal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
       }
 
       return BadRequest(new OpenIddictResponse
