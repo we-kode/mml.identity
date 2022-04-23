@@ -100,18 +100,6 @@ namespace IdentityService.Test
       _Authorize().GetAwaiter().GetResult();
     }
 
-    [Fact]
-    public async void Test_Get()
-    {
-      var result = await client.GetAsync("/api/v1.0/identity/user");
-      result.EnsureSuccessStatusCode();
-      var userSettings = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync());
-      Assert.Equal(userName, userSettings.Name);
-      client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "xyz");
-      result = await client.GetAsync("/api/v1.0/identity/user");
-      Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
-    }
-
     [Theory]
     [InlineData(null)]
     [InlineData("test@user.test", 1)]
@@ -212,7 +200,7 @@ namespace IdentityService.Test
 
       if (result.IsSuccessStatusCode)
       {
-        result = await client.GetAsync("/api/v1.0/identity/user");
+        result = await client.GetAsync("/api/v1.0/identity/connect/userinfo");
         var userSettings = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync());
         Assert.Equal(newUsername, userSettings.Name);
 

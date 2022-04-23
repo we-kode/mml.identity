@@ -56,21 +56,6 @@ namespace Identity.Controllers
     }
 
     /// <summary>
-    /// Loads one existing user information.
-    /// </summary>
-    /// <returns><see cref="User"/></returns>
-    [HttpGet()]
-    public async Task<ActionResult<User>> Get()
-    {
-      var actualUserId = HttpContext.User.GetClaim(OpenIddictConstants.Claims.Subject);
-      if (string.IsNullOrEmpty(actualUserId) || !await _repository.UserExists(long.Parse(actualUserId)).ConfigureAwait(false))
-      {
-        return BadRequest();
-      }
-      return await _repository.GetUser(long.Parse(actualUserId)).ConfigureAwait(false);
-    }
-
-    /// <summary>
     /// Deletes one existing user.
     /// </summary>
     /// <param name="id">id of the user to be removed.</param>

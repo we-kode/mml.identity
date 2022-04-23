@@ -129,13 +129,13 @@ namespace Identity.Controllers
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
     public async Task<IActionResult> UserInfo()
     {
-      var userId = HttpContext.User.GetClaim(Claims.Subject);
-      if (string.IsNullOrEmpty(userId) || !await _identityRepository.UserExists(long.Parse(userId)))
+      var userIdClaim = HttpContext.User.GetClaim(Claims.Subject);
+      if (!long.TryParse(userIdClaim, out var userId) || !await _identityRepository.UserExists(userId))
       {
         return BadRequest();
       }
 
-      var user = await _identityRepository.GetUser(long.Parse(userId)).ConfigureAwait(false);
+      var user = await _identityRepository.GetUser(userId).ConfigureAwait(false);
       return Ok(user);
     }
   }
