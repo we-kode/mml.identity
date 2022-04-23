@@ -1,6 +1,7 @@
 using Identity.Application;
 using Identity.Application.Models;
 using Identity.DBContext;
+using Identity.DBContext.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -62,10 +63,12 @@ namespace IdentityService.Test
 
                     services.Remove(descriptor!);
 
+                    var dbFactory = services.SingleOrDefault(s => s.ServiceType == typeof(Func<ApplicationDBContext>));
+
                     services.AddDbContext<ApplicationDBContext>(options =>
                           {
                             options.UseInMemoryDatabase("InMemoryDbForTesting");
-                            options.UseOpenIddict();
+                            options.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
                           });
 
                     //seed first user
@@ -90,6 +93,8 @@ namespace IdentityService.Test
                     {
                       manager.CreateAsync(oAuthCLient).GetAwaiter().GetResult();
                     }
+
+                    // TODO register db fyctory here as in memeory
 
 
                   });
@@ -300,6 +305,44 @@ namespace IdentityService.Test
       refreshToken = token.refresh_token;
       string accessToken = token.access_token;
       client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+    }
+
+    [Fact]
+    public async void Test_ClientUpdate()
+    {
+      // update existing client
+      // update not existing client
+      var payload = $"{{\"clientId\": \"abbc\", \"displayName\": \"abc\"}}";
+      var content = new StringContent(payload, Encoding.UTF8, "application/json");
+      var result = await client.PostAsync("/api/v1.0/identity/client", content);
+      Assert.Equal(HttpStatusCode.Forbidden, result.StatusCode);
+    }
+
+    [Fact]
+    public async void Test_ListClients()
+    {
+      // add clients and than get them over api
+      var result = await client.GetAsync("/api/v1.0/identity/client/list");
+      result.EnsureSuccessStatusCode();
+    }
+
+    [Fact]
+    public async void Test_DeleteClients()
+    {
+      // delete exiting client
+      // delet not existing client
+      // delete as non user
+      var result = await client.GetAsync("/api/v1.0/identity/client/list");
+      result.EnsureSuccessStatusCode();
+    }
+
+    [Fact]
+    public async void Test_AuthorizeClient()
+    {
+      // try to auth wihtout signature
+      // auth valid signature
+      var result = await client.GetAsync("/api/v1.0/identity/client/list");
+      result.EnsureSuccessStatusCode();
     }
   }
 }

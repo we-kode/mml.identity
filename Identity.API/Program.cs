@@ -1,7 +1,12 @@
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
+using AutoMapper;
 using Identity.Application;
+using Identity.Application.Models;
+using Identity.Application.Services;
+using Identity.Contracts;
 using Identity.DBContext;
+using Identity.DBContext.Models;
 using Identity.Filters;
 using Identity.Infrastructure;
 using Identity.Middleware;
@@ -56,7 +61,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddDbContext<ApplicationDBContext>(options =>
 {
   options.UseNpgsql(builder.Configuration.GetConnectionString("IdentityConnection"));
-  options.UseOpenIddict();
+  options.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
 });
 builder.Services.AddIdentity<IdentityUser<long>, IdentityRole<long>>(options =>
     {
@@ -99,7 +104,7 @@ builder.Services.AddAuthorization(option =>
 builder.Services.AddOpenIddict()
     .AddCore(options =>
     {
-      options.UseEntityFrameworkCore().UseDbContext<ApplicationDBContext>();
+      options.UseEntityFrameworkCore().UseDbContext<ApplicationDBContext>().ReplaceDefaultEntities<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
       options.UseQuartz(options =>
       {
         options.SetMinimumTokenLifespan(TimeSpan.FromDays(int.Parse(builder.Configuration["OpenId:CleanOrphanTokenDays"])));
@@ -153,22 +158,45 @@ builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 builder.Host.ConfigureContainer<ContainerBuilder>(cBuilder =>
 {
   cBuilder.RegisterType<ApplicationService>();
+  cBuilder.RegisterType<ClientApplicationService>();
   if (!builder.Environment.IsEnvironment("Test"))
   {
     cBuilder.RegisterType<BCryptPasswordHasher<IdentityUser<long>>>().AsImplementedInterfaces();
   }
 
   cBuilder.RegisterType<SqlIdentityRepository>().AsImplementedInterfaces();
+  cBuilder.RegisterType<SqlClientRepository>().AsImplementedInterfaces();
 
   Func<ApplicationDBContext> factory = () =>
   {
     var optionsBuilder = new DbContextOptionsBuilder<ApplicationDBContext>();
-    optionsBuilder.UseNpgsql(builder.Configuration.GetConnectionString("IdentityConnection"));
-
+    if (builder.Environment.IsEnvironment("Test"))
+    {
+      optionsBuilder.UseInMemoryDatabase("InMemoryDbForTesting");
+    } else
+    {
+      optionsBuilder.UseNpgsql(builder.Configuration.GetConnectionString("IdentityConnection"));
+    }
+ 
     return new ApplicationDBContext(optionsBuilder.Options);
   };
 
   cBuilder.RegisterInstance(factory);
+
+  // automapper
+  cBuilder.Register(context => new MapperConfiguration(cfg =>
+  {
+    cfg.CreateMap<ClientUpdateRequest, Client>();
+  })).AsSelf().SingleInstance();
+  cBuilder.Register(c =>
+  {
+    //This resolves a new context that can be used later.
+    var context = c.Resolve<IComponentContext>();
+    var config = context.Resolve<MapperConfiguration>();
+    return config.CreateMapper(context.Resolve);
+  })
+  .As<IMapper>()
+  .InstancePerLifetimeScope();
 });
 #endregion
 
