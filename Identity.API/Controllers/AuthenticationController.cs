@@ -12,6 +12,9 @@ using OpenIddict.Validation.AspNetCore;
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Threading.Tasks;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
@@ -40,8 +43,6 @@ namespace Identity.Controllers
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(493)]
-    [ProducesResponseType(495)]
     [Consumes("application/x-www-form-urlencoded")]
     public async Task<IActionResult> Exchange()
     {

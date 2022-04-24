@@ -3,6 +3,9 @@ using Identity.Application.Models;
 using Identity.DBContext;
 using OpenIddict.Abstractions;
 using Identity.DBContext.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Identity.Infrastructure
 {

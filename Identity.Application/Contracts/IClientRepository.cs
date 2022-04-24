@@ -1,4 +1,6 @@
 ﻿using Identity.Application.Models;
+using System.Collections.Generic;
+
 namespace Identity.Application.Contracts
 {
   public interface IClientRepository

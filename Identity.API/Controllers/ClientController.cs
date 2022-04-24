@@ -5,8 +5,10 @@ using Identity.Application.Models;
 using Identity.Application.Services;
 using Identity.Contracts;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OpenIddict.Validation.AspNetCore;
+using System.Collections.Generic;
 
 namespace Identity.Controllers
 {

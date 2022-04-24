@@ -1,5 +1,7 @@
 ﻿using Identity.Application.Contracts;
 using Identity.Application.Models;
+using System;
+using System.Linq;
 using System.Transactions;
 
 namespace Identity.Application.Services
