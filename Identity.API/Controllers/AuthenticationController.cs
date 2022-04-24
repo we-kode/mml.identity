@@ -39,6 +39,7 @@ namespace Identity.Controllers
     /// <returns>The bearer token on successful signin.</returns>
     /// <response code="401">If authorization fails.</response>
     /// <response code="400">If grant type is not supported.</response>
+    /// <response code="403">If token is invalid or user is not active.</response>
     [HttpPost("token")]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
