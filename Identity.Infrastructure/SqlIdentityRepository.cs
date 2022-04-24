@@ -2,6 +2,10 @@
 using Identity.Application.Contracts;
 using Identity.Application.Models;
 using Microsoft.AspNetCore.Identity;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Identity.Infrastructure
 {
@@ -19,8 +23,8 @@ namespace Identity.Infrastructure
     {
       var login = new IdentityUser<long>
       {
-        UserName = userName.ToLower(),
-        NormalizedUserName = userName.ToLower()
+        UserName = userName,
+        NormalizedUserName = userName
       };
 
       var result = await _userManager.CreateAsync(login).ConfigureAwait(false);
@@ -31,12 +35,12 @@ namespace Identity.Infrastructure
 
       await _userManager.AddToRoleAsync(login, ADMIN_ROLE).ConfigureAwait(false);
 
-      return new User(login.Id, userName.ToLower(), true, login.EmailConfirmed);
+      return new User(login.Id, userName, true, login.EmailConfirmed);
     }
 
     public async Task<bool> UserExists(string userName)
     {
-      var result = await _userManager.FindByNameAsync(userName.ToLower()).ConfigureAwait(false);
+      var result = await _userManager.FindByNameAsync(userName).ConfigureAwait(false);
       return result != null;
     }
 
@@ -70,12 +74,12 @@ namespace Identity.Infrastructure
     public async Task UpdateUserName(long id, string name)
     {
       var user = await _userManager.FindByIdAsync(id.ToString()).ConfigureAwait(false);
-      if (user.UserName.ToLower() == name.ToLower())
+      if (user.UserName == name)
       {
         return;
       }
-      user.UserName = name.ToLower();
-      user.NormalizedUserName = name.ToLower();
+      user.UserName = name;
+      user.NormalizedUserName = name;
       await _userManager.UpdateAsync(user).ConfigureAwait(false);
     }
 
@@ -93,13 +97,13 @@ namespace Identity.Infrastructure
 
     public async Task<bool> Validate(string name, string password)
     {
-      var user = await _userManager.FindByNameAsync(name.ToLower()).ConfigureAwait(false);
+      var user = await _userManager.FindByNameAsync(name).ConfigureAwait(false);
       return await _userManager.CheckPasswordAsync(user, password).ConfigureAwait(false);
     }
 
     public async Task<User> GetUser(string name)
     {
-      var result = await _userManager.FindByNameAsync(name.ToLower()).ConfigureAwait(false);
+      var result = await _userManager.FindByNameAsync(name).ConfigureAwait(false);
       var isAdmin = await _userManager.IsInRoleAsync(result, ADMIN_ROLE).ConfigureAwait(false);
       return new User(result.Id, result.UserName, isAdmin, result.EmailConfirmed);
     }
@@ -109,8 +113,8 @@ namespace Identity.Infrastructure
       var user = await _userManager.FindByIdAsync(id.ToString()).ConfigureAwait(false);
       user.EmailConfirmed = false;
       await _userManager.UpdateAsync(user).ConfigureAwait(false);
-      await _userManager.RemovePasswordAsync(user).ConfigureAwait (false);
-      await _userManager.AddPasswordAsync(user, changedPassword).ConfigureAwait (false);
+      await _userManager.RemovePasswordAsync(user).ConfigureAwait(false);
+      await _userManager.AddPasswordAsync(user, changedPassword).ConfigureAwait(false);
     }
 
     public async Task<bool> IsActive(long userId)

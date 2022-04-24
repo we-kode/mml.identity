@@ -1,4 +1,6 @@
 ﻿using Identity.Application.Models;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Identity.Application.Contracts
 {
@@ -84,7 +86,7 @@ namespace Identity.Application.Contracts
     /// <param name="password">User password</param>
     /// <returns>True, if user credentials are valid.</returns>
     Task<bool> Validate(string name, string password);
-    
+
     /// <summary>
     /// Checks if user is active
     /// </summary>

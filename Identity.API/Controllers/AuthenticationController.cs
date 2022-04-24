@@ -1,17 +1,18 @@
-﻿using Identity.Application;
+using Identity.Application;
 using Identity.Application.Contracts;
 using Identity.Extensions;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
+using System;
+using System.Collections.Generic;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
+using System.Threading.Tasks;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace Identity.Controllers
@@ -170,13 +171,13 @@ namespace Identity.Controllers
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
     public async Task<IActionResult> UserInfo()
     {
-      var userId = HttpContext.User.GetClaim(Claims.Subject);
-      if (string.IsNullOrEmpty(userId) || !await _identityRepository.UserExists(long.Parse(userId)))
+      var userIdClaim = HttpContext.User.GetClaim(Claims.Subject);
+      if (!long.TryParse(userIdClaim, out var userId) || !await _identityRepository.UserExists(userId))
       {
         return BadRequest();
       }
 
-      var user = await _identityRepository.GetUser(long.Parse(userId)).ConfigureAwait(false);
+      var user = await _identityRepository.GetUser(userId).ConfigureAwait(false);
       return Ok(user);
     }
   }

@@ -6,6 +6,7 @@ EXPOSE 5051
 ENV ASPNETCORE_ENVIRONMENT=Release
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+ARG DOT_NET_BUILD_CONFIG=Release
 WORKDIR /src
 COPY ["Identity.API/Identity.csproj", "Identity.API/"]
 COPY ["Identity.DBContext/Identity.DBContext.csproj", "Identity.DBContext/"]
@@ -14,11 +15,12 @@ COPY ["Identity.Infrastructure/Identity.Infrastructure.csproj", "Identity.Infras
 RUN dotnet restore "Identity.API/Identity.csproj"
 COPY . .
 WORKDIR "/src/Identity.API"
-RUN dotnet build "Identity.csproj" -c Release -o /app/build
+RUN dotnet build "Identity.csproj" -c ${DOT_NET_BUILD_CONFIG} -o /app/build
 
 FROM build AS publish
+ARG DOT_NET_BUILD_CONFIG=Release
 WORKDIR "/src/Identity.API"
-RUN dotnet publish "Identity.csproj" -c Release -o /app/publish
+RUN dotnet publish "Identity.csproj" -c ${DOT_NET_BUILD_CONFIG} -o /app/publish
 
 FROM base AS final
 WORKDIR /app

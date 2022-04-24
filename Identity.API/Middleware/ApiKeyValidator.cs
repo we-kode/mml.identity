@@ -1,4 +1,9 @@
-﻿namespace Identity.Middleware
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using System.Threading.Tasks;
+
+namespace Identity.Middleware
 {
   public class ApiKeyValidator
   {

@@ -1,7 +1,6 @@
 using Identity.Application;
 using Identity.Application.Models;
 using Identity.DBContext;
-using Identity.DBContext.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -25,7 +24,7 @@ namespace IdentityService.Test
 {
   public class IdentityControllerTest
   {
-    private readonly HttpClient client;
+   private readonly HttpClient client;
     private readonly WebApplicationFactory<Program> application;
     private readonly string userName = "test@user.test";
     private readonly string password = "secret123456";
@@ -63,12 +62,10 @@ namespace IdentityService.Test
 
                     services.Remove(descriptor!);
 
-                    var dbFactory = services.SingleOrDefault(s => s.ServiceType == typeof(Func<ApplicationDBContext>));
-
                     services.AddDbContext<ApplicationDBContext>(options =>
                           {
                             options.UseInMemoryDatabase("InMemoryDbForTesting");
-                            options.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
+                            options.UseOpenIddict();
                           });
 
                     //seed first user
@@ -94,8 +91,6 @@ namespace IdentityService.Test
                       manager.CreateAsync(oAuthCLient).GetAwaiter().GetResult();
                     }
 
-                    // TODO register db fyctory here as in memeory
-
 
                   });
           });
@@ -103,18 +98,6 @@ namespace IdentityService.Test
       client = application.CreateClient();
       client.DefaultRequestHeaders.Add("App-Key", "abc");
       _Authorize().GetAwaiter().GetResult();
-    }
-
-    [Fact]
-    public async void Test_Get()
-    {
-      var result = await client.GetAsync("/api/v1.0/identity/user");
-      result.EnsureSuccessStatusCode();
-      var userSettings = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync());
-      Assert.Equal(userName, userSettings.Name);
-      client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "xyz");
-      result = await client.GetAsync("/api/v1.0/identity/user");
-      Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
     }
 
     [Theory]
@@ -217,7 +200,7 @@ namespace IdentityService.Test
 
       if (result.IsSuccessStatusCode)
       {
-        result = await client.GetAsync("/api/v1.0/identity/user");
+        result = await client.GetAsync("/api/v1.0/identity/connect/userinfo");
         var userSettings = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync());
         Assert.Equal(newUsername, userSettings.Name);
 

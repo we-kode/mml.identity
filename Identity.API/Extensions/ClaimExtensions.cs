@@ -1,4 +1,5 @@
 ﻿using OpenIddict.Abstractions;
+using System.Collections.Generic;
 using System.Security.Claims;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 

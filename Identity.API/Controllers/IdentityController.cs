@@ -4,9 +4,12 @@ using Identity.Application.Models;
 using Identity.Contracts;
 using Identity.Filters;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Identity.Controllers
 {
@@ -53,21 +56,6 @@ namespace Identity.Controllers
     }
 
     /// <summary>
-    /// Loads one existing user information.
-    /// </summary>
-    /// <returns><see cref="User"/></returns>
-    [HttpGet()]
-    public async Task<ActionResult<User>> Get()
-    {
-      var actualUserId = HttpContext.User.GetClaim(OpenIddictConstants.Claims.Subject);
-      if (string.IsNullOrEmpty(actualUserId) || !await _repository.UserExists(long.Parse(actualUserId)).ConfigureAwait(false))
-      {
-        return BadRequest();
-      }
-      return await _repository.GetUser(long.Parse(actualUserId)).ConfigureAwait(false);
-    }
-
-    /// <summary>
     /// Deletes one existing user.
     /// </summary>
     /// <param name="id">id of the user to be removed.</param>
@@ -104,7 +92,7 @@ namespace Identity.Controllers
 
       if (string.IsNullOrEmpty(request.Password))
       {
-        return BadRequest();
+        return BadRequest("USER_EMPTY_PASSWORD");
       }
 
       var user = await _service.Create(request.Name, request.Password).ConfigureAwait(false);
@@ -112,15 +100,11 @@ namespace Identity.Controllers
     }
 
     /// <summary>
-    /// Change username.
+    /// Updates user
     /// </summary>
     /// <param name="id">The id of user to be changed</param>
-    /// <param name="request">New Userinformation to store.</param>
-    /// <response code="400">the username is not a valid email.</response>
-    /// <response code="404">If user does not exists already.</response>
+    /// <param name="request">New information to store.</param>
     [HttpPost("{id:long}")]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [Authorize(Policy = Roles.ADMIN)]
     [ServiceFilter(typeof(UserExistsFilter))]
     public async Task<IActionResult> Post(long id, [FromBody] UserCreationRequest request)
@@ -141,12 +125,12 @@ namespace Identity.Controllers
       var id = HttpContext.User.GetClaim(OpenIddictConstants.Claims.Subject);
       if (string.IsNullOrEmpty(id))
       {
-        return BadRequest();
+        return BadRequest("INVALID_ID");
       }
       var isUpdated = await _service.Update(long.Parse(id), request.Name, request.OldPassword, request.NewPassword).ConfigureAwait(false);
       if (!isUpdated)
       {
-        return BadRequest();
+        return BadRequest("USER_UPDATE_FAILED");
       }
       return Ok();
     }
