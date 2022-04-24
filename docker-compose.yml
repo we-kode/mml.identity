@@ -1,0 +1,25 @@
+services:
+  wekode.mml.identity:
+    image: ${IMAGE}
+    build:
+      context: .
+      dockerfile: Identity.API/Dockerfile
+    container_name: wekode.mml.identity
+    restart: always
+    user: ${UID}:${GUID}
+    volumes:
+      - ${VOL_CERTS}:/etc/ssl/certs:ro
+      - ${APPSETTINGS}:/configs/appsettings.json:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - wekode.mml
+    logging:
+      driver: "json-file"
+      options:
+        mode: "non-blocking"
+        max-size: "${LOG_MAX_SIZE}"
+        max-file: "${LOG_MAX_FILE}"
+
+networks:
+  wekode.mml:
+    external: true
