@@ -92,7 +92,7 @@ namespace Identity.Controllers
 
       if (string.IsNullOrEmpty(request.Password))
       {
-        return BadRequest();
+        return BadRequest("USER_EMPTY_PASSWORD");
       }
 
       var user = await _service.Create(request.Name, request.Password).ConfigureAwait(false);
@@ -125,12 +125,12 @@ namespace Identity.Controllers
       var id = HttpContext.User.GetClaim(OpenIddictConstants.Claims.Subject);
       if (string.IsNullOrEmpty(id))
       {
-        return BadRequest();
+        return BadRequest("INVALID_ID");
       }
       var isUpdated = await _service.Update(long.Parse(id), request.Name, request.OldPassword, request.NewPassword).ConfigureAwait(false);
       if (!isUpdated)
       {
-        return BadRequest();
+        return BadRequest("USER_UPDATE_FAILED");
       }
       return Ok();
     }
