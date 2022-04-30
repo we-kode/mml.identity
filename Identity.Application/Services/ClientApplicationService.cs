@@ -2,6 +2,7 @@
 using Identity.Application.Models;
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Transactions;
 
 namespace Identity.Application.Services
@@ -20,14 +21,15 @@ namespace Identity.Application.Services
     /// <summary>
     /// Generates new client
     /// </summary>
+    /// <param name="b64PublicKey">the public key of the new client as base64 string</param>
     /// <returns><see cref="ApplicationClient"/></returns>
-    public ApplicationClient CreateClient(string b64PublicKey)
+    public async Task<ApplicationClient> CreateClient(string b64PublicKey)
     {
       using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
       var random = new Random();
       var secret = new string(Enumerable.Repeat(secretChars, secretLength).Select(s => s[random.Next(s.Length)]).ToArray());
       var client = new ApplicationClient(Guid.NewGuid().ToString(), secret);
-      _repository.CreateClient(client.ClientId, client.ClientSecret, b64PublicKey);
+      await _repository.CreateClient(client.ClientId, client.ClientSecret, b64PublicKey).ConfigureAwait(false);
       scope.Complete();
       return client;
     }

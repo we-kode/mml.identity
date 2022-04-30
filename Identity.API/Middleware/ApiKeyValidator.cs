@@ -12,7 +12,7 @@ namespace Identity.Middleware
 
     private const string APP_KEY_HEADER = "App-Key";
     private const string ADMIN_APP_KEY = "ADMIN_APP_KEY";
-    private const string APP_KEY = "ADMIN_APP_KEY";
+    private const string APP_KEY = "APP_KEY";
 
     public ApiKeyValidator(RequestDelegate next, IConfiguration configuration)
     {

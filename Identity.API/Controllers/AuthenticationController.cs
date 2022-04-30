@@ -134,15 +134,14 @@ namespace Identity.Controllers
         }
 
         var pubKey = Convert.FromBase64String(pubKeyStringB64);
-        var certificate = new X509Certificate2(pubKey);
-
-        using var rsa = certificate.GetRSAPublicKey();
+        var rsa = RSA.Create();
+        rsa.ImportRSAPublicKey(pubKey, out int _);
         /*
          * signature must be made over the following string to be marked as valid
          * { "clientId" : "<id of client>", "clientSecret" : "<secret of client>", "grant_type" : "client_credentials" }
          */
         var content = $"{{ \"clientId\" : \"{request.ClientId}\", \"clientSecret\" : \"{request.ClientSecret}\", \"grant_type\" : \"client_credentials\" }}";
-        var isValidSignature = rsa!.VerifyData(Encoding.UTF8.GetBytes(content), Encoding.UTF8.GetBytes(request.CodeChallenge!), HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1);
+        var isValidSignature = rsa!.VerifyData(Encoding.UTF8.GetBytes(content), Convert.FromBase64String(request.CodeChallenge!), HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1);
         if (!isValidSignature)
         {
           return Unauthorized();

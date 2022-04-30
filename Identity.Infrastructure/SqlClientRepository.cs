@@ -6,6 +6,9 @@ using Identity.DBContext.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Text.Json;
+using CryptoHelper;
 
 namespace Identity.Infrastructure
 {
@@ -13,16 +16,20 @@ namespace Identity.Infrastructure
   {
 
     private readonly Func<ApplicationDBContext> _contextFactory;
+    private readonly IOpenIddictApplicationManager _openIddictApplicationManager;
 
-    public SqlClientRepository(Func<ApplicationDBContext> contextFactory)
+    public SqlClientRepository(Func<ApplicationDBContext> contextFactory, IOpenIddictApplicationManager openIddictApplicationManager)
     {
       _contextFactory = contextFactory;
+      _openIddictApplicationManager = openIddictApplicationManager;
     }
 
     public IList<Client> ListClients(string? filter)
     {
       using var context = _contextFactory();
-      return context.Applications.Where(app => !string.IsNullOrEmpty(app.Permissions) && app.Permissions.Contains(OpenIddictConstants.GrantTypes.ClientCredentials))
+      return context.Applications
+        .Where(app => !string.IsNullOrEmpty(app.Permissions) && app.Permissions.Contains(OpenIddictConstants.GrantTypes.ClientCredentials))
+        .Where(app => string.IsNullOrEmpty(filter) || (app.DisplayName ?? "").Contains(filter, StringComparison.OrdinalIgnoreCase))
         .Select(app => new Client(app.ClientId ?? "", app.DisplayName ?? ""))
         .ToList();
     }
@@ -53,13 +60,13 @@ namespace Identity.Infrastructure
       return true;
     }
 
-    string? IClientRepository.GetPublicKey(string clientId)
+    public string? GetPublicKey(string clientId)
     {
       using var context = _contextFactory();
       return context.Applications.FirstOrDefault(app => app.ClientId == clientId)?.PublicKey;
     }
 
-    void IClientRepository.CreateClient(string clientId, string clientSecret, string b64PublicKey)
+    public async Task CreateClient(string clientId, string clientSecret, string b64PublicKey)
     {
       using var context = _contextFactory();
       var client = context.Applications.FirstOrDefault(app => app.ClientId == clientId);
@@ -67,19 +74,20 @@ namespace Identity.Infrastructure
       {
         throw new ArgumentException($"Client with id {clientId} exists already");
       }
+
       client = new OpenIddictClientApplication
       {
         ClientId = clientId,
-        ClientSecret = clientSecret,
+        ClientSecret = Crypto.HashPassword(clientSecret),
         PublicKey = b64PublicKey,
-        Permissions =
-        new {
+        Permissions = JsonSerializer.Serialize(new[]
+        {
           OpenIddictConstants.Permissions.Endpoints.Token,
           OpenIddictConstants.Permissions.GrantTypes.ClientCredentials
-        }.ToString()
+        })
       };
       context.Applications.Add(client);
-      context.SaveChanges();
+      await context.SaveChangesAsync().ConfigureAwait(false);
     }
   }
 }

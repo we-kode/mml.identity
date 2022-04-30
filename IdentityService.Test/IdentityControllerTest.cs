@@ -1,6 +1,8 @@
 using Identity.Application;
+using Identity.Application.Contracts;
 using Identity.Application.Models;
 using Identity.DBContext;
+using Identity.DBContext.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -16,6 +18,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
@@ -24,7 +27,7 @@ namespace IdentityService.Test
 {
   public class IdentityControllerTest
   {
-   private readonly HttpClient client;
+    private readonly HttpClient client;
     private readonly WebApplicationFactory<Program> application;
     private readonly string userName = "test@user.test";
     private readonly string password = "secret123456";
@@ -47,7 +50,8 @@ namespace IdentityService.Test
       var configuration = new ConfigurationBuilder()
           .AddInMemoryCollection(new Dictionary<string, string>
           {
-                    { "ADMIN_APP_KEY", "abc" }
+                    { "ADMIN_APP_KEY", "abc" },
+                    { "APP_KEY", "def" },
           })
           .Build();
 
@@ -65,8 +69,10 @@ namespace IdentityService.Test
                     services.AddDbContext<ApplicationDBContext>(options =>
                           {
                             options.UseInMemoryDatabase("InMemoryDbForTesting");
-                            options.UseOpenIddict();
+                            options.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
                           });
+
+                    services.AddDistributedMemoryCache();
 
                     //seed first user
                     var serviceProvider = services.BuildServiceProvider();
@@ -90,8 +96,6 @@ namespace IdentityService.Test
                     {
                       manager.CreateAsync(oAuthCLient).GetAwaiter().GetResult();
                     }
-
-
                   });
           });
 
@@ -294,23 +298,63 @@ namespace IdentityService.Test
     public async void Test_ClientUpdate()
     {
       // update existing client
-      // update not existing client
       var payload = $"{{\"clientId\": \"abbc\", \"displayName\": \"abc\"}}";
       var content = new StringContent(payload, Encoding.UTF8, "application/json");
       var result = await client.PostAsync("/api/v1.0/identity/client", content);
-      Assert.Equal(HttpStatusCode.Forbidden, result.StatusCode);
+      Assert.Equal(HttpStatusCode.BadRequest, result.StatusCode);
+
+      using var scope = application.Services.CreateScope();
+      var scopedServices = scope.ServiceProvider;
+      var clientRepository = scopedServices.GetRequiredService<IClientRepository>();
+      await clientRepository.CreateClient("abbc", "123", "test").ConfigureAwait(false);
+
+      result = await client.PostAsync("/api/v1.0/identity/client", content);
+      Assert.Equal(HttpStatusCode.OK, result.StatusCode);
+      Assert.Contains(clientRepository.ListClients(null), client => client.DisplayName == "abc");
     }
 
     [Fact]
-    public async void Test_ListClients()
+    public async Task Test_ListClients()
     {
-      // add clients and than get them over api
+      using var scope = application.Services.CreateScope();
+      var scopedServices = scope.ServiceProvider;
+      var clientRepository = scopedServices.GetRequiredService<IClientRepository>();
+      await clientRepository.CreateClient("abc", "123", "test").ConfigureAwait(false);
+      clientRepository.Update(new Client("abc", "abc"));
+      await clientRepository.CreateClient("def", "123", "test").ConfigureAwait(false);
+      clientRepository.Update(new Client("def", "def"));
+      await clientRepository.CreateClient("ghi", "123", "test").ConfigureAwait(false);
+      clientRepository.Update(new Client("ghi", "ghi"));
+
       var result = await client.GetAsync("/api/v1.0/identity/client/list");
       result.EnsureSuccessStatusCode();
+      var clients = JsonConvert.DeserializeObject<IList<Client>>(await result.Content.ReadAsStringAsync());
+      Assert.Equal(3, clients.Count);
+
+      result = await client.GetAsync("/api/v1.0/identity/client/list?filter=d");
+      clients = JsonConvert.DeserializeObject<IList<Client>>(await result.Content.ReadAsStringAsync());
+      Assert.Equal(1, clients.Count);
+      Assert.Contains(clients, client => client.ClientId == "def");
     }
 
     [Fact]
-    public async void Test_DeleteClients()
+    public async Task Test_DeleteClients()
+    {
+      var result = await client.DeleteAsync($"/api/v1.0/identity/client/abc");
+      Assert.Equal(HttpStatusCode.OK, result.StatusCode);
+
+      using var scope = application.Services.CreateScope();
+      var scopedServices = scope.ServiceProvider;
+      var clientRepository = scopedServices.GetRequiredService<IClientRepository>();
+      await clientRepository.CreateClient("abc", "123", "test").ConfigureAwait(false);
+      result = await client.DeleteAsync($"/api/v1.0/identity/client/abc");
+      result.EnsureSuccessStatusCode();
+
+      Assert.Equal(0, clientRepository.ListClients(null).Count);
+    }
+
+    [Fact]
+    public async void Test_RegisterClient()
     {
       // delete exiting client
       // delet not existing client
@@ -320,12 +364,50 @@ namespace IdentityService.Test
     }
 
     [Fact]
-    public async void Test_AuthorizeClient()
+    public async Task Test_AuthorizeClient()
     {
-      // try to auth wihtout signature
+      client.DefaultRequestHeaders.Remove("App-Key");
+      client.DefaultRequestHeaders.Add("App-Key", "def");
+      client.DefaultRequestHeaders.Remove("Authorization");
+
+      using var scope = application.Services.CreateScope();
+      var scopedServices = scope.ServiceProvider;
+      var clientRepository = scopedServices.GetRequiredService<IClientRepository>();
+      await clientRepository.CreateClient("testClient1", "testSecret1", "").ConfigureAwait(false);
+
+      // send auth request
+      // try to auth without signature
+      var payload = new List<KeyValuePair<string, string>>();
+      payload.Add(new KeyValuePair<string, string>("grant_type", "client_credentials"));
+      payload.Add(new KeyValuePair<string, string>("client_id", "testClient1"));
+      payload.Add(new KeyValuePair<string, string>("client_secret", "testSecret1"));
+
+      // set tokens
+      var result = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload)).ConfigureAwait(false);
+      Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
+
+      RSA rsa = RSA.Create();
+      var pubKey = rsa.ExportRSAPublicKey();
+      await clientRepository.CreateClient("testClient2", "testSecret2", Convert.ToBase64String(pubKey)).ConfigureAwait(false);
+
       // auth valid signature
-      var result = await client.GetAsync("/api/v1.0/identity/client/list");
-      result.EnsureSuccessStatusCode();
+      var signatureString = $"{{ \"clientId\" : \"testClient2\", \"clientSecret\" : \"testSecret2\", \"grant_type\" : \"client_credentials\" }}";
+      payload = new List<KeyValuePair<string, string>>();
+      payload.Add(new KeyValuePair<string, string>("grant_type", "client_credentials"));
+      payload.Add(new KeyValuePair<string, string>("client_id", "testClient2"));
+      payload.Add(new KeyValuePair<string, string>("client_secret", "testSecret2"));
+      var signature = new KeyValuePair<string, string>("code_challenge", Convert.ToBase64String(rsa.SignData(Encoding.UTF8.GetBytes(signatureString), HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1)));
+      payload.Add(signature);
+      var tokenResult = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload)).Result.Content.ReadAsStringAsync();
+      dynamic token = JObject.Parse(tokenResult);
+      string accessToken = token.access_token;
+      Assert.True(!string.IsNullOrEmpty(accessToken));
+
+      // try with invalid signature
+      payload.Remove(signature);
+      payload.Add(new KeyValuePair<string, string>("code_challenge", Convert.ToBase64String(rsa.SignData(Encoding.UTF8.GetBytes("random string"), HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1))));
+      result = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload));
+      Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
     }
   }
 }

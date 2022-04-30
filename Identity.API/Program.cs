@@ -10,6 +10,7 @@ using Identity.DBContext.Models;
 using Identity.Filters;
 using Identity.Infrastructure;
 using Identity.Middleware;
+using Identity.Sockets;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -33,7 +34,14 @@ builder.Configuration
 #region services
 // Add services to the container.
 builder.Services.AddScoped<UserExistsFilter>();
+builder.Services.AddScoped<TokenRegistrationFilter>();
+builder.Services.AddSignalR().AddJsonProtocol();
 builder.Services.AddControllers();
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+  options.Configuration = builder.Configuration.GetConnectionString("DistributedCache");
+  options.InstanceName = "wekode.mml.cache";
+});
 builder.Services.AddApiVersioning(config =>
 {
   config.DefaultApiVersion = new ApiVersion(1, 0);
@@ -65,8 +73,8 @@ builder.Services.AddCors(options =>
 #region dbContext
 builder.Services.AddDbContext<ApplicationDBContext>(options =>
 {
-  options.UseNpgsql(builder.Configuration.GetConnectionString("IdentityConnection"));
-  options.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
+    options.UseNpgsql(builder.Configuration.GetConnectionString("IdentityConnection"));
+    options.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
 });
 builder.Services.AddIdentity<IdentityUser<long>, IdentityRole<long>>(options =>
     {
@@ -183,7 +191,8 @@ builder.Host.ConfigureContainer<ContainerBuilder>(cBuilder =>
     {
       optionsBuilder.UseNpgsql(builder.Configuration.GetConnectionString("IdentityConnection"));
     }
- 
+    optionsBuilder.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
+
     return new ApplicationDBContext(optionsBuilder.Options);
   };
 
@@ -265,10 +274,15 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseRouting();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapControllers();
+app.UseEndpoints(endpoints =>
+{
+  endpoints.MapControllers();
+  endpoints.MapHub<RegisterClientHub>("/hub/client");
+});
 #endregion
 
 app.Run();

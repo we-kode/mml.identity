@@ -1,5 +1,6 @@
 ﻿using Identity.Application.Models;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Identity.Application.Contracts
 {
@@ -10,7 +11,7 @@ namespace Identity.Application.Contracts
     /// </summary>
     /// <param name="filter">Clients will be filtered by given string</param>
     /// <returns>List of <see cref="Client"/></returns>
-    IList<Client> ListClients(string? filter);
+    IList<Client> ListClients(string? filter = null);
 
     /// <summary>
     /// Deletes one client
@@ -24,7 +25,7 @@ namespace Identity.Application.Contracts
     /// <param name="clientId">The client id</param>
     /// <param name="clientSecret">the client secret</param>
     /// <param name="b64PublicKey">base64 string of the public key</param>
-    void CreateClient(string clientId, string clientSecret, string b64PublicKey);
+    Task CreateClient(string clientId, string clientSecret, string b64PublicKey);
 
     /// <summary>
     /// Updates one clients display name
