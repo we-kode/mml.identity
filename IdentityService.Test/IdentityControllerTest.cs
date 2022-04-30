@@ -6,6 +6,7 @@ using Identity.DBContext.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -73,7 +74,7 @@ namespace IdentityService.Test
                           });
 
                     services.AddDistributedMemoryCache();
-
+                    services.AddSignalR();
                     //seed first user
                     var serviceProvider = services.BuildServiceProvider();
                     using var scope = serviceProvider.CreateScope();
@@ -329,7 +330,7 @@ namespace IdentityService.Test
       var result = await client.GetAsync("/api/v1.0/identity/client/list");
       result.EnsureSuccessStatusCode();
       var clients = JsonConvert.DeserializeObject<IList<Client>>(await result.Content.ReadAsStringAsync());
-      Assert.Equal(3, clients.Count);
+      Assert.True(clients.Count >= 3);
 
       result = await client.GetAsync("/api/v1.0/identity/client/list?filter=d");
       clients = JsonConvert.DeserializeObject<IList<Client>>(await result.Content.ReadAsStringAsync());
@@ -346,21 +347,76 @@ namespace IdentityService.Test
       using var scope = application.Services.CreateScope();
       var scopedServices = scope.ServiceProvider;
       var clientRepository = scopedServices.GetRequiredService<IClientRepository>();
-      await clientRepository.CreateClient("abc", "123", "test").ConfigureAwait(false);
-      result = await client.DeleteAsync($"/api/v1.0/identity/client/abc");
+      await clientRepository.CreateClient("clientToDelete", "123", "test").ConfigureAwait(false);
+      result = await client.DeleteAsync($"/api/v1.0/identity/client/clientToDelete");
       result.EnsureSuccessStatusCode();
 
-      Assert.Equal(0, clientRepository.ListClients(null).Count);
+      Assert.Equal(0, clientRepository.ListClients("clientToDelete").Count);
     }
 
     [Fact]
     public async void Test_RegisterClient()
     {
-      // delete exiting client
-      // delet not existing client
-      // delete as non user
-      var result = await client.GetAsync("/api/v1.0/identity/client/list");
-      result.EnsureSuccessStatusCode();
+      var someRandomString = Convert.ToBase64String(Encoding.UTF8.GetBytes("somerandomstring"));
+      var payload = $"{{\"base64PublicKey\": \"{someRandomString}\"}}";
+      var content = new StringContent(payload, Encoding.UTF8, "application/json");
+      var result = await client.PostAsync("/api/v1.0/identity/client/register/abcdef", content);
+      var hubFinished = false;
+      var apiFinished = false;
+      Assert.Equal(HttpStatusCode.Forbidden, result.StatusCode);
+
+      string token = string.Empty;
+      var connection = new HubConnectionBuilder()
+            .WithUrl("http://localhost/hub/client", options =>
+            {
+              options.HttpMessageHandlerFactory = _ => application.Server.CreateHandler();
+              options.Headers.Add("App-Key", "abc");
+              options.Headers.Add("Authorization", client.DefaultRequestHeaders.Authorization!.ToString());
+              options.CloseTimeout = TimeSpan.FromMinutes(5);
+            })
+            .Build();
+      connection.On<string>("REGISTER_TOKEN_UPDATED", t =>
+      {
+        Assert.True(!string.IsNullOrEmpty(t));
+        token = t;
+      });
+      connection.On<string>("CLIENT_REGISTERED", t =>
+      {
+        Assert.Equal(token, t);
+        hubFinished = true;
+      });
+      await connection.StartAsync().ConfigureAwait(false);
+      await connection.InvokeAsync("SubscribeToClientRegistration").ConfigureAwait(false);
+      while (string.IsNullOrEmpty(token))
+      {
+        await Task.Delay(100).ConfigureAwait(false);
+      }
+      result = await client.PostAsync($"/api/v1.0/identity/client/register/{token}", content);
+      Assert.Equal(HttpStatusCode.BadRequest, result.StatusCode);
+
+      var rsa = RSA.Create();
+      var pubKey = rsa.ExportRSAPublicKey();
+      payload = $"{{\"base64PublicKey\": \"{Convert.ToBase64String(pubKey)}\"}}";
+      content = new StringContent(payload, Encoding.UTF8, "application/json");
+      result = await client.PostAsync($"/api/v1.0/identity/client/register/{token}", content);
+      Assert.Equal(HttpStatusCode.Forbidden, result.StatusCode);
+      token = "";
+      while (string.IsNullOrEmpty(token))
+      {
+        await Task.Delay(100).ConfigureAwait(false);
+      }
+      result = await client.PostAsync($"/api/v1.0/identity/client/register/{token}", content);
+      var appClient = JsonConvert.DeserializeObject<ApplicationClient>(await result.Content.ReadAsStringAsync());
+      Assert.True(appClient != null);
+      Assert.True(!string.IsNullOrEmpty(appClient!.ClientSecret));
+      Assert.True(!string.IsNullOrEmpty(appClient!.ClientId));
+      Assert.Equal("http://localhost", appClient.Host);
+      apiFinished = true;
+      while (!apiFinished && !hubFinished)
+      {
+        await Task.Delay(100).ConfigureAwait(false);
+      }
+      await connection.StopAsync().ConfigureAwait(false);
     }
 
     [Fact]

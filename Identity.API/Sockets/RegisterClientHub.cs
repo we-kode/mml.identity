@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using OpenIddict.Validation.AspNetCore;
+using PasswordGenerator;
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
 
@@ -22,11 +22,13 @@ namespace Identity.Sockets
 
     private readonly IConfiguration _configuration;
     private readonly IDistributedCache _cache;
+    private readonly IHubContext<RegisterClientHub> _hubContext;
 
-    public RegisterClientHub(IConfiguration configuration, IDistributedCache cache)
+    public RegisterClientHub(IConfiguration configuration, IDistributedCache cache, IHubContext<RegisterClientHub> hubContext)
     {
       _configuration = configuration;
       _cache = cache;
+      _hubContext = hubContext;
     }
 
     public async Task SubscribeToClientRegistration()
@@ -37,7 +39,7 @@ namespace Identity.Sockets
 
     public async Task UpdateRegistrationToken(string connectionId, string registrationToken)
     {
-      await Clients.Group(connectionId).SendAsync(registrationToken).ConfigureAwait(false);
+      await _hubContext.Clients.Group(connectionId).SendAsync("REGISTER_TOKEN_UPDATED", registrationToken).ConfigureAwait(false);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
@@ -61,28 +63,25 @@ namespace Identity.Sockets
     }
 
     private async void Generate(string connectionId, Timer? timer)
-    { 
+    {
       // because cache is just only a key value store we need to add both token and connection as key,
       // so the validation of token and validation of existing connection can be proceeded.
       // token validation needs to map to one connectionId to inform the admin by this connection for a successful client registration
       var oldToken = await _cache.GetStringAsync(connectionId).ConfigureAwait(false);
-      if (timer != null && string.IsNullOrEmpty(oldToken)) {
+      if (timer != null && string.IsNullOrEmpty(oldToken))
+      {
         timer.Dispose();
       }
 
-      await _cache.RemoveAsync(oldToken).ConfigureAwait(false);
-    
-      var registrationToken = GetToken();
+      if (!string.IsNullOrEmpty(oldToken))
+      {
+        await _cache.RemoveAsync(oldToken).ConfigureAwait(false);
+      }
+
+      var registrationToken = new Password(64).IncludeLowercase().IncludeUppercase().IncludeNumeric().Next();
       await _cache.SetStringAsync(connectionId, registrationToken).ConfigureAwait(false);
       await _cache.SetStringAsync(registrationToken, connectionId).ConfigureAwait(false);
       await UpdateRegistrationToken(connectionId, registrationToken).ConfigureAwait(false);
-    }
-
-    private static string GetToken()
-    {
-      byte[] time = BitConverter.GetBytes(DateTime.UtcNow.ToBinary());
-      byte[] key = Guid.NewGuid().ToByteArray();
-      return Convert.ToBase64String(time.Concat(key).ToArray());
     }
   }
 }

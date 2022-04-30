@@ -1,14 +1,14 @@
-﻿using Identity.Application.Contracts;
+﻿using CryptoHelper;
+using Identity.Application.Contracts;
 using Identity.Application.Models;
 using Identity.DBContext;
-using OpenIddict.Abstractions;
 using Identity.DBContext.Models;
+using OpenIddict.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Text.Json;
-using CryptoHelper;
+using System.Threading.Tasks;
 
 namespace Identity.Infrastructure
 {

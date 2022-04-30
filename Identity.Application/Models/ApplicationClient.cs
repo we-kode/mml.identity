@@ -11,12 +11,12 @@
     /// <summary>
     /// the client id
     /// </summary>
-    public string ClientId{ get; set; }
+    public string ClientId { get; set; }
 
     /// <summary>
     /// client secret
     /// </summary>
-    public string ClientSecret{ get; set; }
+    public string ClientSecret { get; set; }
 
     /// <summary>
     /// Inits client

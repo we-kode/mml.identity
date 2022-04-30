@@ -11,7 +11,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using OpenIddict.Validation.AspNetCore;
+using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 
 namespace Identity.Controllers
@@ -90,13 +92,23 @@ namespace Identity.Controllers
     [ServiceFilter(typeof(TokenRegistrationFilter))]
     public async Task<ActionResult<ApplicationClient>> Register([FromBody] RegisterClientRequest request, string regToken, [FromQuery] string? conId)
     {
+      try
+      {
+        var rsa = RSA.Create();
+        rsa.ImportRSAPublicKey(Convert.FromBase64String(request.Base64PublicKey), out int _);
+      }
+      catch (CryptographicException)
+      {
+        return BadRequest();
+      }
+
       var client = await _service.CreateClient(request.Base64PublicKey).ConfigureAwait(false);
       if (string.IsNullOrEmpty(client.ClientId))
       {
         return StatusCode(StatusCodes.Status500InternalServerError);
       }
       await hubContext.Clients.Group(conId!).SendAsync("CLIENT_REGISTERED", client.ClientId).ConfigureAwait(false);
-      client.Host = $"{Request.Scheme}://{Request.Host}"; 
+      client.Host = $"{Request.Scheme}://{Request.Host}";
       return client;
     }
   }

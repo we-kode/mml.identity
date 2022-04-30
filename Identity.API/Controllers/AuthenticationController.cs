@@ -13,7 +13,6 @@ using System;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using static OpenIddict.Abstractions.OpenIddictConstants;
@@ -121,7 +120,7 @@ namespace Identity.Controllers
 
       if (request.IsClientCredentialsGrantType())
       {
-        if(string.IsNullOrEmpty(request.CodeChallenge))
+        if (string.IsNullOrEmpty(request.CodeChallenge))
         {
           return Unauthorized();
         }

@@ -37,11 +37,14 @@ builder.Services.AddScoped<UserExistsFilter>();
 builder.Services.AddScoped<TokenRegistrationFilter>();
 builder.Services.AddSignalR().AddJsonProtocol();
 builder.Services.AddControllers();
-builder.Services.AddStackExchangeRedisCache(options =>
+if (!builder.Environment.IsEnvironment("Test"))
 {
-  options.Configuration = builder.Configuration.GetConnectionString("DistributedCache");
-  options.InstanceName = "wekode.mml.cache";
-});
+  builder.Services.AddStackExchangeRedisCache(options =>
+  {
+    options.Configuration = builder.Configuration.GetConnectionString("DistributedCache");
+    options.InstanceName = "wekode.mml.cache";
+  });
+}
 builder.Services.AddApiVersioning(config =>
 {
   config.DefaultApiVersion = new ApiVersion(1, 0);
@@ -73,8 +76,8 @@ builder.Services.AddCors(options =>
 #region dbContext
 builder.Services.AddDbContext<ApplicationDBContext>(options =>
 {
-    options.UseNpgsql(builder.Configuration.GetConnectionString("IdentityConnection"));
-    options.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
+  options.UseNpgsql(builder.Configuration.GetConnectionString("IdentityConnection"));
+  options.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
 });
 builder.Services.AddIdentity<IdentityUser<long>, IdentityRole<long>>(options =>
     {
@@ -187,7 +190,8 @@ builder.Host.ConfigureContainer<ContainerBuilder>(cBuilder =>
     if (builder.Environment.IsEnvironment("Test"))
     {
       optionsBuilder.UseInMemoryDatabase("InMemoryDbForTesting");
-    } else
+    }
+    else
     {
       optionsBuilder.UseNpgsql(builder.Configuration.GetConnectionString("IdentityConnection"));
     }
