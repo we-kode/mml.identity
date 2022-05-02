@@ -247,23 +247,6 @@ if (!roleManager.RoleExistsAsync(Roles.ADMIN).Result)
 }
 #endregion
 
-#region openid oauth clients
-// Create OpenID Connect client application
-var manager = serviceScope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
-var clients = app.Configuration.GetSection("OpenId:Clients").Get<OpenIddictApplicationDescriptor[]>();
-if (clients != null)
-{
-  foreach (var client in clients)
-  {
-    var existingClientApp = manager.FindByClientIdAsync(client.ClientId!).GetAwaiter().GetResult();
-    if (existingClientApp == null)
-    {
-      manager.CreateAsync(client).GetAwaiter().GetResult();
-    }
-  }
-}
-#endregion
-
 #region middleware configuration
 app.UseApiKeyValidation();
 // Configure the HTTP request pipeline.

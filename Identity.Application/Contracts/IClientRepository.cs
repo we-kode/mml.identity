@@ -1,4 +1,5 @@
 ﻿using Identity.Application.Models;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -40,5 +41,17 @@ namespace Identity.Application.Contracts
     /// <param name="clientId">Id of the client</param>
     /// <returns>Base64 string of the public key or null if no public key is stored for client.</returns>
     string? GetPublicKey(string clientId);
+    
+    /// <summary>
+    /// Determines if one admin app client is created already
+    /// </summary>
+    /// <returns>True if admin app client exists.</returns>
+    bool AdminAppExists();
+    
+    /// <summary>
+    /// Creates admin app and returns the Client id
+    /// </summary>
+    /// <returns><see cref="Guid"/> of the client id.</returns>
+    Task<Guid> CreateAdminApp();
   }
 }

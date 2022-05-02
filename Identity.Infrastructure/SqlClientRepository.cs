@@ -16,12 +16,10 @@ namespace Identity.Infrastructure
   {
 
     private readonly Func<ApplicationDBContext> _contextFactory;
-    private readonly IOpenIddictApplicationManager _openIddictApplicationManager;
 
-    public SqlClientRepository(Func<ApplicationDBContext> contextFactory, IOpenIddictApplicationManager openIddictApplicationManager)
+    public SqlClientRepository(Func<ApplicationDBContext> contextFactory)
     {
       _contextFactory = contextFactory;
-      _openIddictApplicationManager = openIddictApplicationManager;
     }
 
     public IList<Client> ListClients(string? filter)
@@ -88,6 +86,35 @@ namespace Identity.Infrastructure
       };
       context.Applications.Add(client);
       await context.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    public bool AdminAppExists()
+    {
+      using var context = _contextFactory();
+      return context.Applications.Any(app => !string.IsNullOrEmpty(app.Permissions) && app.Permissions.Contains(OpenIddictConstants.GrantTypes.Password));
+    }
+
+    public async Task<Guid> CreateAdminApp()
+    {
+      using var context = _contextFactory();
+      var clientId = Guid.NewGuid();
+      var client = new OpenIddictClientApplication
+      {
+        ClientId = clientId.ToString(),
+        DisplayName = "Admin App",
+        Permissions = JsonSerializer.Serialize(new[]
+        {
+          OpenIddictConstants.Permissions.Endpoints.Token,
+          OpenIddictConstants.Permissions.Endpoints.Logout,
+          OpenIddictConstants.Permissions.GrantTypes.Password,
+          OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
+          OpenIddictConstants.Scopes.OfflineAccess,
+
+        })
+      };
+      context.Applications.Add(client);
+      await context.SaveChangesAsync().ConfigureAwait(false);
+      return clientId;
     }
   }
 }
