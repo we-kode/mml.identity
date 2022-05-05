@@ -381,9 +381,9 @@ namespace IdentityService.Test
         Assert.True(!string.IsNullOrEmpty(t));
         token = t;
       });
-      connection.On<string>("CLIENT_REGISTERED", t =>
+      connection.On<string>("CLIENT_REGISTERED", clientId =>
       {
-        Assert.Equal(token, t);
+        Assert.True(Guid.TryParse(clientId, out Guid _));
         hubFinished = true;
       });
       await connection.StartAsync().ConfigureAwait(false);
