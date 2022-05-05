@@ -43,7 +43,6 @@ namespace Identity.Controllers
     /// <param name="request">Filter request to filter the list pof users</param>
     /// <returns><see cref="IList{T}"/> of <see cref="Client"/></returns>
     [HttpGet("list")]
-    [AllowAnonymous]
     public IList<Client> List([FromQuery] string? filter)
     {
       return clientRepository.ListClients(filter);
@@ -64,16 +63,17 @@ namespace Identity.Controllers
     /// Changes client display name.
     /// </summary>
     /// <param name="request">New Userinformation to store.</param>
-    /// <response code="400">If update fails or information are invalid.</response>
+    /// <response code="404">If user does not exists.</response>
     [HttpPost()]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Post([FromBody] ClientUpdateRequest request)
     {
-      var isUpdated = clientRepository.Update(_mapper.Map<Client>(request));
-      if (!isUpdated)
+      if (!clientRepository.ClientExists(request.ClientId.ToString()))
       {
-        return BadRequest("CLIENT_UPDATE_FAILED");
+        return NotFound();
       }
+
+      clientRepository.Update(_mapper.Map<Client>(request));
       return Ok();
     }
 
@@ -103,10 +103,6 @@ namespace Identity.Controllers
       }
 
       var client = await _service.CreateClient(request.Base64PublicKey).ConfigureAwait(false);
-      if (string.IsNullOrEmpty(client.ClientId))
-      {
-        return StatusCode(StatusCodes.Status500InternalServerError);
-      }
       await hubContext.Clients.Group(conId!).SendAsync("CLIENT_REGISTERED", client.ClientId).ConfigureAwait(false);
       client.Host = $"{Request.Scheme}://{Request.Host}";
       return client;

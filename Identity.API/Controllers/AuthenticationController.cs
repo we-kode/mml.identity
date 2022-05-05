@@ -168,7 +168,7 @@ namespace Identity.Controllers
     /// </summary>
     /// <returns><see cref="User"/></returns>
     [HttpGet("userinfo")]
-    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.ADMIN)]
     public async Task<IActionResult> UserInfo()
     {
       var userIdClaim = HttpContext.User.GetClaim(Claims.Subject);

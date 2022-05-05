@@ -32,7 +32,14 @@ namespace Identity.Application.Contracts
     /// </summary>
     /// <param name="client">Client to be updated</param>
     /// <returns>True, if update successfull</returns>
-    bool Update(Client client);
+    void Update(Client client);
+
+    /// <summary>
+    /// Determines if client exists
+    /// </summary>
+    /// <param name="clientId">id of the client</param>
+    /// <returns>True, if client exists</returns>
+    bool ClientExists(string clientId);
 
     /// <summary>
     /// Loads the saved base64 public key string of the client id

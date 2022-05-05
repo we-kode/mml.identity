@@ -299,15 +299,16 @@ namespace IdentityService.Test
     public async void Test_ClientUpdate()
     {
       // update existing client
-      var payload = $"{{\"clientId\": \"abbc\", \"displayName\": \"abc\"}}";
+      var clientId = Guid.NewGuid();
+      var payload = $"{{\"clientId\": \"{clientId}\", \"displayName\": \"abc\"}}";
       var content = new StringContent(payload, Encoding.UTF8, "application/json");
       var result = await client.PostAsync("/api/v1.0/identity/client", content);
-      Assert.Equal(HttpStatusCode.BadRequest, result.StatusCode);
+      Assert.Equal(HttpStatusCode.NotFound, result.StatusCode);
 
       using var scope = application.Services.CreateScope();
       var scopedServices = scope.ServiceProvider;
       var clientRepository = scopedServices.GetRequiredService<IClientRepository>();
-      await clientRepository.CreateClient("abbc", "123", "test").ConfigureAwait(false);
+      await clientRepository.CreateClient(clientId.ToString(), "123", "test").ConfigureAwait(false);
 
       result = await client.PostAsync("/api/v1.0/identity/client", content);
       Assert.Equal(HttpStatusCode.OK, result.StatusCode);
@@ -458,6 +459,10 @@ namespace IdentityService.Test
       dynamic token = JObject.Parse(tokenResult);
       string accessToken = token.access_token;
       Assert.True(!string.IsNullOrEmpty(accessToken));
+
+      client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+      var resultList = await client.GetAsync("/api/v1.0/identity/client/list");
+      Assert.Equal(HttpStatusCode.Forbidden, resultList.StatusCode);
 
       // try with invalid signature
       payload.Remove(signature);
