@@ -1,4 +1,3 @@
-using Identity.Application;
 using Identity.Application.Contracts;
 using Identity.Application.Models;
 using Identity.DBContext;
@@ -81,7 +80,7 @@ namespace IdentityService.Test
                     var scopedServices = scope.ServiceProvider;
                     var userManager = scopedServices.GetRequiredService<UserManager<IdentityUser<long>>>();
                     var roleManager = scopedServices.GetRequiredService<RoleManager<IdentityRole<long>>>();
-                    roleManager.CreateAsync(new IdentityRole<long>(Roles.ADMIN));
+                    roleManager.CreateAsync(new IdentityRole<long>(Identity.Application.IdentityConstants.Roles.Admin));
                     var seededUser = new IdentityUser<long>
                     {
                       UserName = userName,
@@ -89,7 +88,7 @@ namespace IdentityService.Test
                       EmailConfirmed = true
                     };
                     var tu = userManager.CreateAsync(seededUser, password).GetAwaiter().GetResult();
-                    var tr = userManager.AddToRoleAsync(seededUser, Roles.ADMIN).GetAwaiter().GetResult();
+                    var tr = userManager.AddToRoleAsync(seededUser, Identity.Application.IdentityConstants.Roles.Admin).GetAwaiter().GetResult();
 
                     var manager = scopedServices.GetRequiredService<IOpenIddictApplicationManager>();
                     var existingClientApp = manager.FindByClientIdAsync(oAuthCLient.ClientId!).GetAwaiter().GetResult();
@@ -179,11 +178,11 @@ namespace IdentityService.Test
         var serviceScope = application.Services.CreateScope();
         var userManager = serviceScope.ServiceProvider.GetRequiredService<UserManager<IdentityUser<long>>>();
         var adminUser = userManager.FindByIdAsync(1.ToString()).GetAwaiter().GetResult();
-        userManager.RemoveFromRoleAsync(adminUser, Roles.ADMIN).GetAwaiter().GetResult();
+        userManager.RemoveFromRoleAsync(adminUser, Identity.Application.IdentityConstants.Roles.Admin).GetAwaiter().GetResult();
         _Authorize().GetAwaiter().GetResult();
         result = await client.PostAsync("/api/v1.0/identity/user/create", content);
         Assert.Equal(HttpStatusCode.Forbidden, result.StatusCode);
-        userManager.AddToRoleAsync(adminUser, Roles.ADMIN).GetAwaiter().GetResult();
+        userManager.AddToRoleAsync(adminUser, Identity.Application.IdentityConstants.Roles.Admin).GetAwaiter().GetResult();
       }
     }
 
@@ -438,9 +437,13 @@ namespace IdentityService.Test
       payload.Add(new KeyValuePair<string, string>("client_id", "testClient1"));
       payload.Add(new KeyValuePair<string, string>("client_secret", "testSecret1"));
 
-      // set tokens
       var result = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload)).ConfigureAwait(false);
       Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
+
+      // wrong scope
+      payload.Add(new KeyValuePair<string, string>("scope", Identity.Application.IdentityConstants.Scopes.Upload));
+      result = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload)).ConfigureAwait(false);
+      Assert.Equal(HttpStatusCode.BadRequest, result.StatusCode);
 
       RSA rsa = RSA.Create();
       var pubKey = rsa.ExportRSAPublicKey();

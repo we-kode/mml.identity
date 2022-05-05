@@ -34,7 +34,7 @@ namespace Identity.Controllers
     /// <param name="request">Filter request to filter the list pof users</param>
     /// <returns><see cref="IList{T}"/> of <see cref="User"/></returns>
     [HttpGet("list")]
-    [Authorize(Policy = Roles.ADMIN)]
+    [Authorize(Policy = IdentityConstants.Roles.Admin)]
     public IList<User> List([FromQuery] string? filter)
     {
       return _repository.ListUsers(filter);
@@ -48,7 +48,7 @@ namespace Identity.Controllers
     /// <response code="404">If user does not exist.</response>
     [HttpGet("{id:long}")]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [Authorize(Policy = Roles.ADMIN)]
+    [Authorize(Policy = IdentityConstants.Roles.Admin)]
     [ServiceFilter(typeof(UserExistsFilter))]
     public async Task<ActionResult<User>> Get(long id)
     {
@@ -62,7 +62,7 @@ namespace Identity.Controllers
     /// <response code="404">If user does not exists</response>
     [HttpDelete("{id:long}")]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [Authorize(Policy = Roles.ADMIN)]
+    [Authorize(Policy = IdentityConstants.Roles.Admin)]
     [ServiceFilter(typeof(UserExistsFilter))]
     public async Task<IActionResult> Delete(long id)
     {
@@ -82,7 +82,7 @@ namespace Identity.Controllers
     /// <response code="400">If user exists already or the username is not a valid email.</response>
     [HttpPost("create")]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [Authorize(Policy = Roles.ADMIN)]
+    [Authorize(Policy = IdentityConstants.Roles.Admin)]
     public async Task<IActionResult> Create([FromBody] UserCreationRequest request)
     {
       if (await _repository.UserExists(request.Name).ConfigureAwait(false))
@@ -105,7 +105,7 @@ namespace Identity.Controllers
     /// <param name="id">The id of user to be changed</param>
     /// <param name="request">New information to store.</param>
     [HttpPost("{id:long}")]
-    [Authorize(Policy = Roles.ADMIN)]
+    [Authorize(Policy = IdentityConstants.Roles.Admin)]
     [ServiceFilter(typeof(UserExistsFilter))]
     public async Task<IActionResult> Post(long id, [FromBody] UserCreationRequest request)
     {

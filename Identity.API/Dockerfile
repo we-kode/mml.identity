@@ -5,6 +5,9 @@ WORKDIR /app
 EXPOSE 5051
 ENV ASPNETCORE_ENVIRONMENT=Release
 RUN echo 'alias create="dotnet /app/create/Identity.Create.dll"' >> ~/.bashrc
+RUN echo 'alias upload-create="dotnet /app/create/Identity.Create.dll -uc"' >> ~/.bashrc
+RUN echo 'alias upload-list="dotnet /app/create/Identity.Create.dll -ul"' >> ~/.bashrc
+RUN echo 'alias upload-remove="dotnet /app/create/Identity.Create.dll -ud"' >> ~/.bashrc
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 ARG DOT_NET_BUILD_CONFIG=Release

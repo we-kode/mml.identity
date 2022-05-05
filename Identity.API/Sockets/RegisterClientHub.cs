@@ -14,7 +14,7 @@ namespace Identity.Sockets
   /// <summary>
   /// Signalr hub to registrate new clients
   /// </summary>
-  [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.ADMIN)]
+  [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = IdentityConstants.Roles.Admin)]
   public class RegisterClientHub : Hub
   {
 

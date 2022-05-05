@@ -1,4 +1,5 @@
 ﻿using CryptoHelper;
+using Identity.Application;
 using Identity.Application.Contracts;
 using Identity.Application.Models;
 using Identity.DBContext;
@@ -26,7 +27,8 @@ namespace Identity.Infrastructure
     {
       using var context = _contextFactory();
       return context.Applications
-        .Where(app => !string.IsNullOrEmpty(app.Permissions) && app.Permissions.Contains(OpenIddictConstants.GrantTypes.ClientCredentials))
+        .Where(app => !string.IsNullOrEmpty(app.Permissions) && !app.Permissions.Contains(IdentityConstants.Scopes.Upload))
+        .Where(app => app.Permissions!.Contains(OpenIddictConstants.GrantTypes.ClientCredentials))
         .Where(app => string.IsNullOrEmpty(filter) || (app.DisplayName ?? "").Contains(filter, StringComparison.OrdinalIgnoreCase))
         .Select(app => new Client(app.ClientId ?? "", app.DisplayName ?? ""))
         .ToList();
@@ -115,6 +117,35 @@ namespace Identity.Infrastructure
       context.Applications.Add(client);
       await context.SaveChangesAsync().ConfigureAwait(false);
       return clientId;
+    }
+
+    public void CreateUploadClient(UploadClient client)
+    {
+      using var context = _contextFactory();
+      var appClient = new OpenIddictClientApplication
+      {
+        ClientId = client.ClientId,
+        ClientSecret = Crypto.HashPassword(client.ClientSecret),
+        DisplayName = $"Upload client {client.ClientId}",
+        Permissions = JsonSerializer.Serialize(new[]
+        {
+          OpenIddictConstants.Permissions.Endpoints.Token,
+          OpenIddictConstants.Permissions.GrantTypes.ClientCredentials,
+          OpenIddictConstants.Permissions.Prefixes.Scope + IdentityConstants.Scopes.Upload
+        })
+      };
+      context.Applications.Add(appClient);
+      context.SaveChanges();
+    }
+
+    public IList<string> ListUploadClientIds()
+    {
+      using var context = _contextFactory();
+      return context.Applications
+        .AsEnumerable()
+        .Where(app => (app.Permissions ?? "").Contains(IdentityConstants.Scopes.Upload, StringComparison.OrdinalIgnoreCase))
+        .Select(app => app.ClientId!)
+        .ToList();
     }
   }
 }

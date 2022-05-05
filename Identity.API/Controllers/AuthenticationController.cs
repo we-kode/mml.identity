@@ -71,7 +71,7 @@ namespace Identity.Controllers
         identity.AddClaim(Claims.Name, user.Name, Destinations.AccessToken);
         if (user.IsAdmin)
         {
-          identity.AddClaim(Claims.Role, Roles.ADMIN, Destinations.AccessToken);
+          identity.AddClaim(Claims.Role, IdentityConstants.Roles.Admin, Destinations.AccessToken);
         }
         var claimsPrincipal = new ClaimsPrincipal(identity);
         claimsPrincipal.SetScopes(request.GetScopes());
@@ -120,6 +120,16 @@ namespace Identity.Controllers
 
       if (request.IsClientCredentialsGrantType())
       {
+
+        var client = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        client.AddClaim(Claims.Subject, request.ClientId!, Destinations.AccessToken);
+
+        if (request.GetScopes().Contains(IdentityConstants.Scopes.Upload))
+        {
+          var cp = new ClaimsPrincipal(client).SetScopes(request.GetScopes());
+          return SignIn(cp, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        }
+
         if (string.IsNullOrEmpty(request.CodeChallenge))
         {
           return Unauthorized();
@@ -146,11 +156,7 @@ namespace Identity.Controllers
           return Unauthorized();
         }
 
-        var client = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
-
-        client.AddClaim(Claims.Subject, request.ClientId!, Destinations.AccessToken);
-        client.AddClaim(Claims.Role, Roles.CLIENT, Destinations.AccessToken);
-
+        client.AddClaim(Claims.Role, IdentityConstants.Roles.Client, Destinations.AccessToken);
         var claimsPrincipal = new ClaimsPrincipal(client);
         claimsPrincipal.SetScopes(request.GetScopes());
 
