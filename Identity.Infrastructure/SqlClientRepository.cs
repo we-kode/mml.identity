@@ -47,17 +47,12 @@ namespace Identity.Infrastructure
       context.SaveChanges();
     }
 
-    public bool Update(Client client)
+    public void Update(Client client)
     {
       using var context = _contextFactory();
-      var clientToBeUpdated = context.Applications.FirstOrDefault(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == client.ClientId);
-      if (clientToBeUpdated == null)
-      {
-        return false;
-      }
+      var clientToBeUpdated = context.Applications.First(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == client.ClientId);
       clientToBeUpdated.DisplayName = client.DisplayName;
       context.SaveChanges();
-      return true;
     }
 
     public string? GetPublicKey(string clientId)
@@ -69,13 +64,7 @@ namespace Identity.Infrastructure
     public async Task CreateClient(string clientId, string clientSecret, string b64PublicKey)
     {
       using var context = _contextFactory();
-      var client = context.Applications.FirstOrDefault(app => app.ClientId == clientId);
-      if (client != null)
-      {
-        throw new ArgumentException($"Client with id {clientId} exists already");
-      }
-
-      client = new OpenIddictClientApplication
+      var client = new OpenIddictClientApplication
       {
         ClientId = clientId,
         ClientSecret = Crypto.HashPassword(clientSecret),
@@ -146,6 +135,12 @@ namespace Identity.Infrastructure
         .Where(app => (app.Permissions ?? "").Contains(IdentityConstants.Scopes.Upload, StringComparison.OrdinalIgnoreCase))
         .Select(app => app.ClientId!)
         .ToList();
+    }
+
+    public bool ClientExists(string clientId)
+    {
+      using var context = _contextFactory();
+      return context.Applications.Any(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == clientId);
     }
   }
 }

@@ -191,7 +191,9 @@ builder.Host.ConfigureContainer<ContainerBuilder>(cBuilder =>
     var optionsBuilder = new DbContextOptionsBuilder<ApplicationDBContext>();
     if (builder.Environment.IsEnvironment("Test"))
     {
+      #if DEBUG
       optionsBuilder.UseInMemoryDatabase("InMemoryDbForTesting");
+      #endif
     }
     else
     {

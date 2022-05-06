@@ -18,7 +18,9 @@ namespace Identity.Sockets
   public class RegisterClientHub : Hub
   {
 
-    private const string REGISTRATION_TOKEN_INTERVALL = "REGISTRATION_TOKEN_INTERVALL";
+    private const string REGISTRATION_TOKEN_INTERVAL = "REGISTRATION_TOKEN_INTERVAL_MIN";
+    private const string TOKEN_LENGTH = "TOKEN_LENGTH";
+    private const string REGISTRATION_SECTION = "Registration";
 
     private readonly IConfiguration _configuration;
     private readonly IDistributedCache _cache;
@@ -57,7 +59,7 @@ namespace Identity.Sockets
     private void GenerateRegistrationToken(string connectionId)
     {
       Generate(connectionId, null);
-      var timer = new Timer(TimeSpan.FromMinutes(int.Parse(_configuration[REGISTRATION_TOKEN_INTERVALL])).TotalMilliseconds);
+      var timer = new Timer(TimeSpan.FromMinutes(int.Parse(_configuration[$"{REGISTRATION_SECTION}:{REGISTRATION_TOKEN_INTERVAL}"])).TotalMilliseconds);
       timer.Elapsed += (sender, args) => Generate(connectionId, timer);
       timer.Start();
     }
@@ -78,7 +80,8 @@ namespace Identity.Sockets
         await _cache.RemoveAsync(oldToken).ConfigureAwait(false);
       }
 
-      var registrationToken = new Password(64).IncludeLowercase().IncludeUppercase().IncludeNumeric().Next();
+      var tokenLength = _configuration[$"{REGISTRATION_SECTION}:{TOKEN_LENGTH}"];
+      var registrationToken = new Password(int.Parse(tokenLength)).IncludeLowercase().IncludeUppercase().IncludeNumeric().IncludeSpecial("-_").Next();
       await _cache.SetStringAsync(connectionId, registrationToken).ConfigureAwait(false);
       await _cache.SetStringAsync(registrationToken, connectionId).ConfigureAwait(false);
       await UpdateRegistrationToken(connectionId, registrationToken).ConfigureAwait(false);

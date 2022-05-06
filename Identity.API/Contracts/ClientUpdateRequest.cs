@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace Identity.Contracts
 {
@@ -11,7 +12,7 @@ namespace Identity.Contracts
     /// The id of the client
     /// </summary>
     [Required]
-    public string ClientId { get; set; }
+    public Guid ClientId { get; set; }
 
     /// <summary>
     /// The display name of the client
@@ -24,7 +25,7 @@ namespace Identity.Contracts
     /// </summary>
     /// <param name="clientId">The id of the client</param>
     /// <param name="displayName">The display name of the client</param>
-    public ClientUpdateRequest(string clientId, string displayName)
+    public ClientUpdateRequest(Guid clientId, string displayName)
     {
       ClientId = clientId;
       DisplayName = displayName;

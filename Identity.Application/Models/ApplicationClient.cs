@@ -1,7 +1,7 @@
 ﻿namespace Identity.Application.Models
 {
   /// <summary>
-  /// Represents an application client
+  /// Represents an application client, which is just created.
   /// </summary>
   public class ApplicationClient
   {
