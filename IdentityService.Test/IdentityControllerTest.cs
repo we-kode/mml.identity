@@ -1,5 +1,3 @@
-using Identity.Application.Contracts;
-using Identity.Application;
 using Identity.Application.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
