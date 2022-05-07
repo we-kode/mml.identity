@@ -165,7 +165,6 @@ namespace IdentityService.Test
       Assert.True(appClient != null);
       Assert.True(!string.IsNullOrEmpty(appClient!.ClientSecret));
       Assert.True(!string.IsNullOrEmpty(appClient!.ClientId));
-      Assert.Equal("http://localhost", appClient.Host);
       apiFinished = true;
       while (!apiFinished && !hubFinished)
       {
