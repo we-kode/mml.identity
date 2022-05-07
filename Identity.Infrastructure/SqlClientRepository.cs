@@ -64,12 +64,7 @@ namespace Identity.Infrastructure
     public async Task CreateClient(string clientId, string clientSecret, string b64PublicKey)
     {
       using var context = _contextFactory();
-      var client = context.Applications.FirstOrDefault(app => app.ClientId == clientId);
-      if (client != null)
-      {
-        return;
-      }
-      client = new OpenIddictClientApplication
+      var client = new OpenIddictClientApplication
       {
         ClientId = clientId,
         ClientSecret = Crypto.HashPassword(clientSecret),
