@@ -1,10 +1,16 @@
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
+using AutoMapper;
 using Identity.Application;
+using Identity.Application.Models;
+using Identity.Application.Services;
+using Identity.Contracts;
 using Identity.DBContext;
+using Identity.DBContext.Models;
 using Identity.Filters;
 using Identity.Infrastructure;
 using Identity.Middleware;
+using Identity.Sockets;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -28,7 +34,17 @@ builder.Configuration
 #region services
 // Add services to the container.
 builder.Services.AddScoped<UserExistsFilter>();
+builder.Services.AddScoped<TokenRegistrationFilter>();
+builder.Services.AddSignalR().AddJsonProtocol();
 builder.Services.AddControllers();
+if (!builder.Environment.IsEnvironment("Test"))
+{
+  builder.Services.AddStackExchangeRedisCache(options =>
+  {
+    options.Configuration = builder.Configuration.GetConnectionString("DistributedCache");
+    options.InstanceName = "wekode.mml.cache";
+  });
+}
 builder.Services.AddApiVersioning(config =>
 {
   config.DefaultApiVersion = new ApiVersion(1, 0);
@@ -61,7 +77,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddDbContext<ApplicationDBContext>(options =>
 {
   options.UseNpgsql(builder.Configuration.GetConnectionString("IdentityConnection"));
-  options.UseOpenIddict();
+  options.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
 });
 builder.Services.AddIdentity<IdentityUser<long>, IdentityRole<long>>(options =>
     {
@@ -83,6 +99,7 @@ builder.Services.Configure<DataProtectionTokenProviderOptions>(o =>
 #region authentication
 builder.Services.AddQuartz(options =>
 {
+  options.SchedulerName = $"QuartzScheduler-{Guid.NewGuid()}";
   options.UseMicrosoftDependencyInjectionJobFactory();
   options.UseSimpleTypeLoader();
   options.UseInMemoryStore();
@@ -104,7 +121,7 @@ builder.Services.AddAuthorization(option =>
 builder.Services.AddOpenIddict()
     .AddCore(options =>
     {
-      options.UseEntityFrameworkCore().UseDbContext<ApplicationDBContext>();
+      options.UseEntityFrameworkCore().UseDbContext<ApplicationDBContext>().ReplaceDefaultEntities<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
       options.UseQuartz(options =>
       {
         options.SetMinimumTokenLifespan(TimeSpan.FromDays(int.Parse(builder.Configuration["OpenId:CleanOrphanTokenDays"])));
@@ -115,6 +132,7 @@ builder.Services.AddOpenIddict()
     {
       options.AllowPasswordFlow();
       options.AllowRefreshTokenFlow();
+      options.AllowClientCredentialsFlow();
 
       options.SetTokenEndpointUris("/api/v1.0/identity/connect/token")
              .SetUserinfoEndpointUris("/api/v1.0/identity/connect/userinfo");
@@ -158,22 +176,43 @@ builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 builder.Host.ConfigureContainer<ContainerBuilder>(cBuilder =>
 {
   cBuilder.RegisterType<ApplicationService>();
+  cBuilder.RegisterType<ClientApplicationService>();
   if (!builder.Environment.IsEnvironment("Test"))
   {
     cBuilder.RegisterType<BCryptPasswordHasher<IdentityUser<long>>>().AsImplementedInterfaces();
   }
 
   cBuilder.RegisterType<SqlIdentityRepository>().AsImplementedInterfaces();
+  cBuilder.RegisterType<SqlClientRepository>().AsImplementedInterfaces();
 
-  Func<ApplicationDBContext> factory = () =>
+  if (!builder.Environment.IsEnvironment("Test"))
   {
-    var optionsBuilder = new DbContextOptionsBuilder<ApplicationDBContext>();
-    optionsBuilder.UseNpgsql(builder.Configuration.GetConnectionString("IdentityConnection"));
+    Func<ApplicationDBContext> factory = () =>
+    {
+      var optionsBuilder = new DbContextOptionsBuilder<ApplicationDBContext>();
+      optionsBuilder.UseNpgsql(builder.Configuration.GetConnectionString("IdentityConnection"));
+      optionsBuilder.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
 
-    return new ApplicationDBContext(optionsBuilder.Options);
-  };
+      return new ApplicationDBContext(optionsBuilder.Options);
+    };
 
-  cBuilder.RegisterInstance(factory);
+    cBuilder.RegisterInstance(factory);
+  }
+
+  // automapper
+  cBuilder.Register(context => new MapperConfiguration(cfg =>
+  {
+    cfg.CreateMap<ClientUpdateRequest, Client>();
+  })).AsSelf().SingleInstance();
+  cBuilder.Register(c =>
+  {
+    //This resolves a new context that can be used later.
+    var context = c.Resolve<IComponentContext>();
+    var config = context.Resolve<MapperConfiguration>();
+    return config.CreateMapper(context.Resolve);
+  })
+  .As<IMapper>()
+  .InstancePerLifetimeScope();
 });
 #endregion
 
@@ -236,10 +275,15 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseRouting();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapControllers();
+app.UseEndpoints(endpoints =>
+{
+  endpoints.MapControllers();
+  endpoints.MapHub<RegisterClientHub>("/hub/client");
+});
 #endregion
 
 app.Run();

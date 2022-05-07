@@ -1,4 +1,4 @@
-﻿using Identity.Application;
+using Identity.Application;
 using Identity.Application.Contracts;
 using Identity.Extensions;
 using Microsoft.AspNetCore;
@@ -12,6 +12,8 @@ using OpenIddict.Validation.AspNetCore;
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
@@ -22,10 +24,12 @@ namespace Identity.Controllers
   public class AuthenticationController : Controller
   {
     private readonly IIdentityRepository _identityRepository;
+    private readonly IClientRepository _clientRepository;
 
-    public AuthenticationController(IIdentityRepository identityRepository)
+    public AuthenticationController(IIdentityRepository identityRepository, IClientRepository clientRepository)
     {
       _identityRepository = identityRepository;
+      _clientRepository = clientRepository;
     }
 
     /// <summary>
@@ -114,6 +118,45 @@ namespace Identity.Controllers
         return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
       }
 
+      if (request.IsClientCredentialsGrantType())
+      {
+        if (string.IsNullOrEmpty(request.CodeChallenge))
+        {
+          return Unauthorized();
+        }
+
+        // check if signature is valid with public key saved for client id
+        var pubKeyStringB64 = _clientRepository.GetPublicKey(request.ClientId!);
+        if (string.IsNullOrEmpty(pubKeyStringB64))
+        {
+          return Unauthorized();
+        }
+
+        var pubKey = Convert.FromBase64String(pubKeyStringB64);
+        var rsa = RSA.Create();
+        rsa.ImportRSAPublicKey(pubKey, out int _);
+        /*
+         * signature must be made over the following string to be marked as valid
+         * { "clientId" : "<id of client>", "clientSecret" : "<secret of client>", "grant_type" : "client_credentials" }
+         */
+        var content = $"{{ \"clientId\" : \"{request.ClientId}\", \"clientSecret\" : \"{request.ClientSecret}\", \"grant_type\" : \"client_credentials\" }}";
+        var isValidSignature = rsa!.VerifyData(Encoding.UTF8.GetBytes(content), Convert.FromBase64String(request.CodeChallenge!), HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1);
+        if (!isValidSignature)
+        {
+          return Unauthorized();
+        }
+
+        var client = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+
+        client.AddClaim(Claims.Subject, request.ClientId!, Destinations.AccessToken);
+        client.AddClaim(Claims.Role, Roles.CLIENT, Destinations.AccessToken);
+
+        var claimsPrincipal = new ClaimsPrincipal(client);
+        claimsPrincipal.SetScopes(request.GetScopes());
+
+        return SignIn(claimsPrincipal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+      }
+
       return BadRequest(new OpenIddictResponse
       {
         Error = Errors.UnsupportedGrantType
@@ -125,7 +168,7 @@ namespace Identity.Controllers
     /// </summary>
     /// <returns><see cref="User"/></returns>
     [HttpGet("userinfo")]
-    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.ADMIN)]
     public async Task<IActionResult> UserInfo()
     {
       var userIdClaim = HttpContext.User.GetClaim(Claims.Subject);

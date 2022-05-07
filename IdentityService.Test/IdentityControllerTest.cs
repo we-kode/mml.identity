@@ -1,18 +1,11 @@
 using Identity.Application;
 using Identity.Application.Models;
-using Identity.DBContext;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using OpenIddict.Abstractions;
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -26,75 +19,11 @@ namespace IdentityService.Test
   {
     private readonly HttpClient client;
     private readonly WebApplicationFactory<Program> application;
-    private readonly string userName = "test@user.test";
-    private readonly string password = "secret123456";
     private string refreshToken = "";
 
     public IdentityControllerTest()
     {
-      var oAuthCLient = new OpenIddictApplicationDescriptor
-      {
-        ClientId = "testClient",
-        DisplayName = "test",
-      };
-      oAuthCLient.Permissions.Add("ept:token");
-      oAuthCLient.Permissions.Add("ept:logout");
-      oAuthCLient.Permissions.Add("gt:password");
-      oAuthCLient.Permissions.Add("gt:refresh_token");
-      oAuthCLient.Permissions.Add("scp:offline_access");
-
-      Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Test");
-      var configuration = new ConfigurationBuilder()
-          .AddInMemoryCollection(new Dictionary<string, string>
-          {
-                    { "ADMIN_APP_KEY", "abc" }
-          })
-          .Build();
-
-      application = new WebApplicationFactory<Program>()
-          .WithWebHostBuilder(builder =>
-          {
-            builder.UseConfiguration(configuration);
-            builder.UseEnvironment("Test");
-            builder.ConfigureServices(services =>
-                  {
-                    var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<ApplicationDBContext>));
-
-                    services.Remove(descriptor!);
-
-                    services.AddDbContext<ApplicationDBContext>(options =>
-                          {
-                            options.UseInMemoryDatabase("InMemoryDbForTesting");
-                            options.UseOpenIddict();
-                          });
-
-                    //seed first user
-                    var serviceProvider = services.BuildServiceProvider();
-                    using var scope = serviceProvider.CreateScope();
-                    var scopedServices = scope.ServiceProvider;
-                    var userManager = scopedServices.GetRequiredService<UserManager<IdentityUser<long>>>();
-                    var roleManager = scopedServices.GetRequiredService<RoleManager<IdentityRole<long>>>();
-                    roleManager.CreateAsync(new IdentityRole<long>(Roles.ADMIN));
-                    var seededUser = new IdentityUser<long>
-                    {
-                      UserName = userName,
-                      NormalizedUserName = userName,
-                      EmailConfirmed = true
-                    };
-                    var tu = userManager.CreateAsync(seededUser, password).GetAwaiter().GetResult();
-                    var tr = userManager.AddToRoleAsync(seededUser, Roles.ADMIN).GetAwaiter().GetResult();
-
-                    var manager = scopedServices.GetRequiredService<IOpenIddictApplicationManager>();
-                    var existingClientApp = manager.FindByClientIdAsync(oAuthCLient.ClientId!).GetAwaiter().GetResult();
-                    if (existingClientApp == null)
-                    {
-                      manager.CreateAsync(oAuthCLient).GetAwaiter().GetResult();
-                    }
-
-
-                  });
-          });
-
+      application = TestApplication.Build();
       client = application.CreateClient();
       client.DefaultRequestHeaders.Add("App-Key", "abc");
       _Authorize().GetAwaiter().GetResult();
@@ -114,7 +43,7 @@ namespace IdentityService.Test
       Assert.True(count == -1 ? users.Count >= 0 : users.Count == count);
       if (users.Count > 0)
       {
-        Assert.Contains(users, user => user.Name == userName);
+        Assert.Contains(users, user => user.Name == TestApplication.UserName);
       }
 
       client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "xyz");
@@ -204,7 +133,7 @@ namespace IdentityService.Test
         var userSettings = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync());
         Assert.Equal(newUsername, userSettings.Name);
 
-        payload = $"{{\"name\": \"{userName}\"}}";
+        payload = $"{{\"name\": \"{TestApplication.UserName}\"}}";
         content = new StringContent(payload, Encoding.UTF8, "application/json");
         await client.PostAsync("/api/v1.0/identity/user", content);
       }
@@ -230,7 +159,7 @@ namespace IdentityService.Test
 
       if (result.IsSuccessStatusCode)
       {
-        payload = $"{{\"name\": \"{userName}\", \"oldPassword\": \"pass0987654321\", \"newPassword\": \"{password}\"}}";
+        payload = $"{{\"name\": \"{TestApplication.UserName}\", \"oldPassword\": \"pass0987654321\", \"newPassword\": \"{TestApplication.Password}\"}}";
         content = new StringContent(payload, Encoding.UTF8, "application/json");
         await client.PostAsync("/api/v1.0/identity/user", content);
       }
@@ -269,7 +198,7 @@ namespace IdentityService.Test
       var result = await client.GetAsync("/api/v1.0/identity/connect/userinfo");
       result.EnsureSuccessStatusCode();
       var userSettings = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync());
-      Assert.Equal(userName, userSettings.Name);
+      Assert.Equal(TestApplication.UserName, userSettings.Name);
     }
 
     private async Task _Authorize()
@@ -279,8 +208,8 @@ namespace IdentityService.Test
       payload.Add(new KeyValuePair<string, string>("grant_type", "password"));
       payload.Add(new KeyValuePair<string, string>("client_id", "testClient"));
       payload.Add(new KeyValuePair<string, string>("scope", "offline_access"));
-      payload.Add(new KeyValuePair<string, string>("username", userName));
-      payload.Add(new KeyValuePair<string, string>("password", password));
+      payload.Add(new KeyValuePair<string, string>("username", TestApplication.UserName));
+      payload.Add(new KeyValuePair<string, string>("password", TestApplication.Password));
 
       // set tokens
       var result = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload)).Result.Content.ReadAsStringAsync();

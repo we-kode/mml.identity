@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using System.Threading.Tasks;
@@ -12,6 +12,7 @@ namespace Identity.Middleware
 
     private const string APP_KEY_HEADER = "App-Key";
     private const string ADMIN_APP_KEY = "ADMIN_APP_KEY";
+    private const string APP_KEY = "APP_KEY";
 
     public ApiKeyValidator(RequestDelegate next, IConfiguration configuration)
     {
@@ -28,7 +29,8 @@ namespace Identity.Middleware
       }
 
       var isAdminAppRequest = context.Request.Headers[APP_KEY_HEADER] == _configuration.GetValue(ADMIN_APP_KEY, string.Empty);
-      if (!isAdminAppRequest)
+      var isAppRequest = context.Request.Headers[APP_KEY_HEADER] == _configuration.GetValue(APP_KEY, string.Empty);
+      if (!isAdminAppRequest && !isAppRequest)
       {
         await _UnauthorizedRespone(context);
         return;

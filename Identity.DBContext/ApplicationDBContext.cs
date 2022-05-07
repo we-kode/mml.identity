@@ -1,4 +1,5 @@
 ﻿using Identity.DBContext.Extensions;
+using Identity.DBContext.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -11,13 +12,15 @@ namespace Identity.DBContext
     {
     }
 
+    public DbSet<OpenIddictClientApplication> Applications { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) => optionsBuilder.UseSnakeCaseNamingConvention();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
       modelBuilder.HasDefaultSchema("public");
       base.OnModelCreating(modelBuilder);
-      modelBuilder.UseOpenIddict();
+      modelBuilder.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
 
       foreach (var entity in modelBuilder.Model.GetEntityTypes())
       {
