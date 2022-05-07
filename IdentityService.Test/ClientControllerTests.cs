@@ -17,7 +17,6 @@ using Xunit;
 
 namespace IdentityService.Test
 {
-  [Collection("Sequential")]
   public class ClientControllerTests
   {
     private readonly HttpClient client;
