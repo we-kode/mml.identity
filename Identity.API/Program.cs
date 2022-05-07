@@ -191,6 +191,7 @@ builder.Host.ConfigureContainer<ContainerBuilder>(cBuilder =>
   {
     Func<ApplicationDBContext> factory = () =>
     {
+      var optionsBuilder = new DbContextOptionsBuilder<ApplicationDBContext>();
       optionsBuilder.UseNpgsql(builder.Configuration.GetConnectionString("IdentityConnection"));
       optionsBuilder.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
 
