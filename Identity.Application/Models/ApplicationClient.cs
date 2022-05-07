@@ -5,9 +5,6 @@
   /// </summary>
   public class ApplicationClient
   {
-    //The host address of the client
-    public string? Host { get; set; }
-
     /// <summary>
     /// the client id
     /// </summary>
