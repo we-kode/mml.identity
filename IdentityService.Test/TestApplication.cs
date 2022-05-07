@@ -40,11 +40,14 @@ namespace IdentityService.Test
           })
           .Build();
 
+      var memoryDBName = Guid.NewGuid().ToString();
+
       return new WebApplicationFactory<Program>()
           .WithWebHostBuilder(builder =>
           {
             builder.UseConfiguration(configuration);
             builder.UseEnvironment("Test");
+
             builder.ConfigureServices(services =>
             {
               var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<ApplicationDBContext>));
@@ -53,7 +56,7 @@ namespace IdentityService.Test
 
               services.AddDbContext<ApplicationDBContext>(options =>
               {
-                options.UseInMemoryDatabase("InMemoryDbForTesting");
+                options.UseInMemoryDatabase(memoryDBName);
                 options.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
               });
 
@@ -81,6 +84,17 @@ namespace IdentityService.Test
               {
                 manager.CreateAsync(oAuthCLient).GetAwaiter().GetResult();
               }
+
+              Func<ApplicationDBContext> factory = () =>
+              {
+                var optionsBuilder = new DbContextOptionsBuilder<ApplicationDBContext>();
+                optionsBuilder.UseInMemoryDatabase(memoryDBName);
+                optionsBuilder.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
+
+                return new ApplicationDBContext(optionsBuilder.Options);
+              };
+
+              services.AddSingleton(provider => factory);
             });
           });
     }

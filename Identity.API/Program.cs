@@ -99,6 +99,7 @@ builder.Services.Configure<DataProtectionTokenProviderOptions>(o =>
 #region authentication
 builder.Services.AddQuartz(options =>
 {
+  options.SchedulerName = $"QuartzScheduler-{Guid.NewGuid()}";
   options.UseMicrosoftDependencyInjectionJobFactory();
   options.UseSimpleTypeLoader();
   options.UseInMemoryStore();
@@ -186,25 +187,18 @@ builder.Host.ConfigureContainer<ContainerBuilder>(cBuilder =>
   cBuilder.RegisterType<SqlIdentityRepository>().AsImplementedInterfaces();
   cBuilder.RegisterType<SqlClientRepository>().AsImplementedInterfaces();
 
-  Func<ApplicationDBContext> factory = () =>
+  if (!builder.Environment.IsEnvironment("Test"))
   {
-    var optionsBuilder = new DbContextOptionsBuilder<ApplicationDBContext>();
-    if (builder.Environment.IsEnvironment("Test"))
-    {
-#if DEBUG
-      optionsBuilder.UseInMemoryDatabase("InMemoryDbForTesting");
-#endif
-    }
-    else
+    Func<ApplicationDBContext> factory = () =>
     {
       optionsBuilder.UseNpgsql(builder.Configuration.GetConnectionString("IdentityConnection"));
-    }
-    optionsBuilder.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
+      optionsBuilder.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
 
-    return new ApplicationDBContext(optionsBuilder.Options);
-  };
+      return new ApplicationDBContext(optionsBuilder.Options);
+    };
 
-  cBuilder.RegisterInstance(factory);
+    cBuilder.RegisterInstance(factory);
+  }
 
   // automapper
   cBuilder.Register(context => new MapperConfiguration(cfg =>
