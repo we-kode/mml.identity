@@ -104,7 +104,6 @@ namespace Identity.Controllers
 
       var client = await _service.CreateClient(request.Base64PublicKey).ConfigureAwait(false);
       await hubContext.Clients.Group(conId!).SendAsync("CLIENT_REGISTERED", client.ClientId).ConfigureAwait(false);
-      client.Host = $"{Request.Scheme}://{Request.Host}";
       return client;
     }
   }
