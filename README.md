@@ -17,7 +17,7 @@ docker exec -it wekode.mml.identity /bin/bash
 root@6712536aabd:/app# create
 ```
 You will be ask for a username and a password. The password must be at least 12 characters long.
-If no admin app exists already, a new one will be created and the clientId will be prompt on the console.
+If no admin app exists already, a new one will be created and the clientId will be printed on the console.
 
 ## Create upload clients
 

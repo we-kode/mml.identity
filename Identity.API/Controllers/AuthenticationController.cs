@@ -1,5 +1,5 @@
-using Identity.Application;
 using Identity.Application.Contracts;
+using Identity.Application.IdentityConstants;
 using Identity.Extensions;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
@@ -71,7 +71,7 @@ namespace Identity.Controllers
         identity.AddClaim(Claims.Name, user.Name, Destinations.AccessToken);
         if (user.IsAdmin)
         {
-          identity.AddClaim(Claims.Role, IdentityConstants.Roles.Admin, Destinations.AccessToken);
+          identity.AddClaim(Claims.Role, Roles.Admin, Destinations.AccessToken);
         }
         var claimsPrincipal = new ClaimsPrincipal(identity);
         claimsPrincipal.SetScopes(request.GetScopes());
@@ -124,7 +124,7 @@ namespace Identity.Controllers
         var client = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         client.AddClaim(Claims.Subject, request.ClientId!, Destinations.AccessToken);
 
-        if (request.GetScopes().Contains(IdentityConstants.Scopes.Upload))
+        if (request.GetScopes().Contains(Application.IdentityConstants.Scopes.Upload))
         {
           var cp = new ClaimsPrincipal(client).SetScopes(request.GetScopes());
           return SignIn(cp, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
@@ -156,7 +156,7 @@ namespace Identity.Controllers
           return Unauthorized();
         }
 
-        client.AddClaim(Claims.Role, IdentityConstants.Roles.Client, Destinations.AccessToken);
+        client.AddClaim(Claims.Role, Roles.Client, Destinations.AccessToken);
         var claimsPrincipal = new ClaimsPrincipal(client);
         claimsPrincipal.SetScopes(request.GetScopes());
 
@@ -174,7 +174,7 @@ namespace Identity.Controllers
     /// </summary>
     /// <returns><see cref="User"/></returns>
     [HttpGet("userinfo")]
-    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = IdentityConstants.Roles.Admin)]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
     public async Task<IActionResult> UserInfo()
     {
       var userIdClaim = HttpContext.User.GetClaim(Claims.Subject);

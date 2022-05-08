@@ -1,7 +1,8 @@
 ﻿using Identity.Application.Contracts;
 using System;
+using System.Threading.Tasks;
 
-namespace Identity.Create
+namespace Identity.CLI
 {
   /// <summary>
   /// Contains function for creating, listing and deleting upload clients
@@ -18,10 +19,10 @@ namespace Identity.Create
     /// <summary>
     /// Creates a new upload client
     /// </summary>
-    public void CreateUploadClient()
+    public async Task CreateUploadClient()
     {
       var client = new Application.Models.UploadClient();
-      _clientRepository.CreateUploadClient(client);
+      await _clientRepository.CreateUploadClient(client).ConfigureAwait(false);
       Console.WriteLine(client);
     }
 
@@ -42,9 +43,9 @@ namespace Identity.Create
     /// Removes one upload client
     /// </summary>
     /// <param name="clientId">Id of the client to be removed</param>
-    public void DeleteUploadClient(string clientId)
+    public void DeleteUploadClient(Guid clientId)
     {
-      _clientRepository.DeleteClient(clientId);
+      _clientRepository.DeleteClient(clientId.ToString());
       Console.WriteLine($"Client {clientId} deleted!");
     }
 

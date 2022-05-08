@@ -1,4 +1,4 @@
-﻿using Identity.Application;
+﻿using Identity.Application.IdentityConstants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Distributed;
@@ -14,7 +14,7 @@ namespace Identity.Sockets
   /// <summary>
   /// Signalr hub to registrate new clients
   /// </summary>
-  [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = IdentityConstants.Roles.Admin)]
+  [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
   public class RegisterClientHub : Hub
   {
 

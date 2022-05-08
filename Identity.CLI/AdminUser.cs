@@ -2,7 +2,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace Identity.Create
+namespace Identity.CLI
 {
   /// <summary>
   /// Functions to create one admin user
@@ -25,7 +25,6 @@ namespace Identity.Create
     /// <returns>True, if user created successfully</returns>
     public async Task<bool> CreateUser()
     {
-      await Task.Delay(10).ConfigureAwait(false);
       Console.WriteLine("Enter username of admin:");
       string? userName;
       while (string.IsNullOrEmpty(userName = Console.ReadLine()))

@@ -1,5 +1,5 @@
 ﻿using CryptoHelper;
-using Identity.Application;
+using Identity.Application.IdentityConstants;
 using Identity.Application.Contracts;
 using Identity.Application.Models;
 using Identity.DBContext;
@@ -27,7 +27,7 @@ namespace Identity.Infrastructure
     {
       using var context = _contextFactory();
       return context.Applications
-        .Where(app => !string.IsNullOrEmpty(app.Permissions) && !app.Permissions.Contains(IdentityConstants.Scopes.Upload))
+        .Where(app => !string.IsNullOrEmpty(app.Permissions) && !app.Permissions.Contains(Scopes.Upload))
         .Where(app => app.Permissions!.Contains(OpenIddictConstants.GrantTypes.ClientCredentials))
         .Where(app => string.IsNullOrEmpty(filter) || (app.DisplayName ?? "").Contains(filter, StringComparison.OrdinalIgnoreCase))
         .Select(app => new Client(app.ClientId ?? "", app.DisplayName ?? ""))
@@ -108,7 +108,7 @@ namespace Identity.Infrastructure
       return clientId;
     }
 
-    public void CreateUploadClient(UploadClient client)
+    public async Task CreateUploadClient(UploadClient client)
     {
       using var context = _contextFactory();
       var appClient = new OpenIddictClientApplication
@@ -120,20 +120,20 @@ namespace Identity.Infrastructure
         {
           OpenIddictConstants.Permissions.Endpoints.Token,
           OpenIddictConstants.Permissions.GrantTypes.ClientCredentials,
-          OpenIddictConstants.Permissions.Prefixes.Scope + IdentityConstants.Scopes.Upload
+          OpenIddictConstants.Permissions.Prefixes.Scope + Scopes.Upload
         })
       };
       context.Applications.Add(appClient);
-      context.SaveChanges();
+      await context.SaveChangesAsync().ConfigureAwait(false);
     }
 
-    public IList<string> ListUploadClientIds()
+    public IList<Guid> ListUploadClientIds()
     {
       using var context = _contextFactory();
       return context.Applications
         .AsEnumerable()
-        .Where(app => (app.Permissions ?? "").Contains(IdentityConstants.Scopes.Upload, StringComparison.OrdinalIgnoreCase))
-        .Select(app => app.ClientId!)
+        .Where(app => (app.Permissions ?? "").Contains(Scopes.Upload, StringComparison.OrdinalIgnoreCase))
+        .Select(app => Guid.Parse(app.ClientId!))
         .ToList();
     }
 

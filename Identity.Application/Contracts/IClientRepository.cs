@@ -24,13 +24,13 @@ namespace Identity.Application.Contracts
     /// Saves a new uplaod client
     /// </summary>
     /// <param name="client">The <see cref="UploadClient"/> to be saved</param>
-    void CreateUploadClient(UploadClient client);
+    Task CreateUploadClient(UploadClient client);
 
     /// <summary>
     /// Lists the ids of the existing upload clients
     /// </summary>
     /// <returns><see cref="IList{T}"/> of client ids</returns>
-    IList<string> ListUploadClientIds();
+    IList<Guid> ListUploadClientIds();
 
     /// <summary>
     /// Creates a new Client
