@@ -111,11 +111,11 @@ builder.Services.AddAuthentication(options =>
 });
 builder.Services.AddAuthorization(option =>
 {
-  option.AddPolicy(Roles.ADMIN, policy =>
+  option.AddPolicy(Identity.Application.IdentityConstants.Roles.Admin, policy =>
   {
     policy.AddAuthenticationSchemes(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
     policy.RequireAuthenticatedUser();
-    policy.RequireClaim(OpenIddictConstants.Claims.Role, Roles.ADMIN);
+    policy.RequireClaim(OpenIddictConstants.Claims.Role, Identity.Application.IdentityConstants.Roles.Admin);
   });
 });
 builder.Services.AddOpenIddict()
@@ -143,6 +143,8 @@ builder.Services.AddOpenIddict()
       options.SetAccessTokenLifetime(TimeSpan.FromMinutes(int.Parse(builder.Configuration["OpenId:AccessTokenLifetimeMinutes"])));
       options.SetRefreshTokenLifetime(TimeSpan.FromMinutes(int.Parse(builder.Configuration["OpenId:RefreshTokenLifetimeMinutes"])));
       options.SetRefreshTokenReuseLeeway(TimeSpan.FromSeconds(int.Parse(builder.Configuration["OpenId:RefreshTokenReuseLeewaySeconds"])));
+
+      options.RegisterScopes(Identity.Application.IdentityConstants.Scopes.Upload);
 
       if (builder.Environment.IsEnvironment("Test"))
       {
@@ -238,26 +240,9 @@ if (db.IsRelational())
   db.Migrate();
 }
 var roleManager = serviceScope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<long>>>();
-if (!roleManager.RoleExistsAsync(Roles.ADMIN).Result)
+if (!roleManager.RoleExistsAsync(Identity.Application.IdentityConstants.Roles.Admin).Result)
 {
-  roleManager.CreateAsync(new IdentityRole<long>(Roles.ADMIN)).GetAwaiter().GetResult();
-}
-#endregion
-
-#region openid oauth clients
-// Create OpenID Connect client application
-var manager = serviceScope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
-var clients = app.Configuration.GetSection("OpenId:Clients").Get<OpenIddictApplicationDescriptor[]>();
-if (clients != null)
-{
-  foreach (var client in clients)
-  {
-    var existingClientApp = manager.FindByClientIdAsync(client.ClientId!).GetAwaiter().GetResult();
-    if (existingClientApp == null)
-    {
-      manager.CreateAsync(client).GetAwaiter().GetResult();
-    }
-  }
+  roleManager.CreateAsync(new IdentityRole<long>(Identity.Application.IdentityConstants.Roles.Admin)).GetAwaiter().GetResult();
 }
 #endregion
 

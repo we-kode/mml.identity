@@ -1,4 +1,5 @@
 ﻿using CryptoHelper;
+using Identity.Application.IdentityConstants;
 using Identity.Application.Contracts;
 using Identity.Application.Models;
 using Identity.DBContext;
@@ -16,19 +17,18 @@ namespace Identity.Infrastructure
   {
 
     private readonly Func<ApplicationDBContext> _contextFactory;
-    private readonly IOpenIddictApplicationManager _openIddictApplicationManager;
 
-    public SqlClientRepository(Func<ApplicationDBContext> contextFactory, IOpenIddictApplicationManager openIddictApplicationManager)
+    public SqlClientRepository(Func<ApplicationDBContext> contextFactory)
     {
       _contextFactory = contextFactory;
-      _openIddictApplicationManager = openIddictApplicationManager;
     }
 
     public IList<Client> ListClients(string? filter)
     {
       using var context = _contextFactory();
       return context.Applications
-        .Where(app => !string.IsNullOrEmpty(app.Permissions) && app.Permissions.Contains(OpenIddictConstants.GrantTypes.ClientCredentials))
+        .Where(app => !string.IsNullOrEmpty(app.Permissions) && !app.Permissions.Contains(Scopes.Upload))
+        .Where(app => app.Permissions!.Contains(OpenIddictConstants.GrantTypes.ClientCredentials))
         .Where(app => string.IsNullOrEmpty(filter) || (app.DisplayName ?? "").Contains(filter, StringComparison.OrdinalIgnoreCase))
         .Select(app => new Client(app.ClientId ?? "", app.DisplayName ?? ""))
         .ToList();
@@ -78,6 +78,65 @@ namespace Identity.Infrastructure
       context.Applications.Add(client);
       await context.SaveChangesAsync().ConfigureAwait(false);
     }
+
+    public bool AdminAppExists()
+    {
+      using var context = _contextFactory();
+      return context.Applications.Any(app => !string.IsNullOrEmpty(app.Permissions) && app.Permissions.Contains(OpenIddictConstants.GrantTypes.Password));
+    }
+
+    public async Task<Guid> CreateAdminApp()
+    {
+      using var context = _contextFactory();
+      var clientId = Guid.NewGuid();
+      var client = new OpenIddictClientApplication
+      {
+        ClientId = clientId.ToString(),
+        DisplayName = "Admin App",
+        Permissions = JsonSerializer.Serialize(new[]
+        {
+          OpenIddictConstants.Permissions.Endpoints.Token,
+          OpenIddictConstants.Permissions.Endpoints.Logout,
+          OpenIddictConstants.Permissions.GrantTypes.Password,
+          OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
+          OpenIddictConstants.Scopes.OfflineAccess,
+
+        })
+      };
+      context.Applications.Add(client);
+      await context.SaveChangesAsync().ConfigureAwait(false);
+      return clientId;
+    }
+
+    public async Task CreateUploadClient(UploadClient client)
+    {
+      using var context = _contextFactory();
+      var appClient = new OpenIddictClientApplication
+      {
+        ClientId = client.ClientId,
+        ClientSecret = Crypto.HashPassword(client.ClientSecret),
+        DisplayName = $"Upload client {client.ClientId}",
+        Permissions = JsonSerializer.Serialize(new[]
+        {
+          OpenIddictConstants.Permissions.Endpoints.Token,
+          OpenIddictConstants.Permissions.GrantTypes.ClientCredentials,
+          OpenIddictConstants.Permissions.Prefixes.Scope + Scopes.Upload
+        })
+      };
+      context.Applications.Add(appClient);
+      await context.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    public IList<Guid> ListUploadClientIds()
+    {
+      using var context = _contextFactory();
+      return context.Applications
+        .AsEnumerable()
+        .Where(app => (app.Permissions ?? "").Contains(Scopes.Upload, StringComparison.OrdinalIgnoreCase))
+        .Select(app => Guid.Parse(app.ClientId!))
+        .ToList();
+    }
+
     public bool ClientExists(string clientId)
     {
       using var context = _contextFactory();

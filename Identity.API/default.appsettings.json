@@ -19,13 +19,6 @@
   "OpenId": {
     "EncryptionCert": "/certs/identity.encrypt.pfx",
     "SigningCert": "/certs/identity.sign.pfx",
-    "Clients": [
-      {
-        "ClientId": "Admin.APP",
-        "DisplayName": "Admin App",
-        "Permissions": [ "ept:token", "ept:logout", "gt:password", "gt:refresh_token", "scp:offline_access" ]
-      }
-    ],
     "AccessTokenLifetimeMinutes": "60",
     "RefreshTokenLifetimeMinutes": "43200",
     "RefreshTokenReuseLeewaySeconds": "10",

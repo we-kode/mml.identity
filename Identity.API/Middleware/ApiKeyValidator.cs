@@ -42,7 +42,7 @@ namespace Identity.Middleware
     private async Task _UnauthorizedRespone(HttpContext context)
     {
       context.Response.StatusCode = 401; //Unauthorized               
-      await context.Response.WriteAsync("Unauthorized!!!");
+      await context.Response.WriteAsync(string.Empty);
     }
   }
 

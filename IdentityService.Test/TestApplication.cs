@@ -1,5 +1,4 @@
-﻿using Identity.Application;
-using Identity.DBContext;
+﻿using Identity.DBContext;
 using Identity.DBContext.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -69,7 +68,7 @@ namespace IdentityService.Test
               var scopedServices = scope.ServiceProvider;
               var userManager = scopedServices.GetRequiredService<UserManager<IdentityUser<long>>>();
               var roleManager = scopedServices.GetRequiredService<RoleManager<IdentityRole<long>>>();
-              roleManager.CreateAsync(new IdentityRole<long>(Roles.ADMIN));
+              roleManager.CreateAsync(new IdentityRole<long>(Identity.Application.IdentityConstants.Roles.Admin));
               var seededUser = new IdentityUser<long>
               {
                 UserName = UserName,
@@ -77,7 +76,7 @@ namespace IdentityService.Test
                 EmailConfirmed = true
               };
               var tu = userManager.CreateAsync(seededUser, Password).GetAwaiter().GetResult();
-              var tr = userManager.AddToRoleAsync(seededUser, Roles.ADMIN).GetAwaiter().GetResult();
+              var tr = userManager.AddToRoleAsync(seededUser, Identity.Application.IdentityConstants.Roles.Admin).GetAwaiter().GetResult();
 
               var manager = scopedServices.GetRequiredService<IOpenIddictApplicationManager>();
               var existingClientApp = manager.FindByClientIdAsync(oAuthCLient.ClientId!).GetAwaiter().GetResult();

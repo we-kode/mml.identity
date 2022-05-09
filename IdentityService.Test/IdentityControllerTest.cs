@@ -1,4 +1,3 @@
-using Identity.Application;
 using Identity.Application.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -103,11 +102,11 @@ namespace IdentityService.Test
         var serviceScope = application.Services.CreateScope();
         var userManager = serviceScope.ServiceProvider.GetRequiredService<UserManager<IdentityUser<long>>>();
         var adminUser = userManager.FindByIdAsync(1.ToString()).GetAwaiter().GetResult();
-        userManager.RemoveFromRoleAsync(adminUser, Roles.ADMIN).GetAwaiter().GetResult();
+        userManager.RemoveFromRoleAsync(adminUser, Identity.Application.IdentityConstants.Roles.Admin).GetAwaiter().GetResult();
         _Authorize().GetAwaiter().GetResult();
         result = await client.PostAsync("/api/v1.0/identity/user/create", content);
         Assert.Equal(HttpStatusCode.Forbidden, result.StatusCode);
-        userManager.AddToRoleAsync(adminUser, Roles.ADMIN).GetAwaiter().GetResult();
+        userManager.AddToRoleAsync(adminUser, Identity.Application.IdentityConstants.Roles.Admin).GetAwaiter().GetResult();
       }
     }
 

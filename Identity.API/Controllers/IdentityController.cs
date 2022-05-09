@@ -1,5 +1,6 @@
 using Identity.Application;
 using Identity.Application.Contracts;
+using Identity.Application.IdentityConstants;
 using Identity.Application.Models;
 using Identity.Contracts;
 using Identity.Filters;
@@ -16,7 +17,7 @@ namespace Identity.Controllers
   [ApiController]
   [ApiVersion("1.0")]
   [Route("api/v{version:apiVersion}/[controller]/user")]
-  [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.ADMIN)]
+  [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
   public class IdentityController : ControllerBase
   {
     private ApplicationService _service;

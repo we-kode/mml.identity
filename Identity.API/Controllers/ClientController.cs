@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
-using Identity.Application;
 using Identity.Application.Contracts;
+using Identity.Application.IdentityConstants;
 using Identity.Application.Models;
 using Identity.Application.Services;
 using Identity.Contracts;
@@ -21,7 +21,7 @@ namespace Identity.Controllers
   [ApiController]
   [ApiVersion("1.0")]
   [Route("api/v{version:apiVersion}/identity/[controller]")]
-  [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.ADMIN)]
+  [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
   public class ClientController : ControllerBase
   {
     private readonly IClientRepository clientRepository;

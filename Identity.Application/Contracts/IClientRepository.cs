@@ -1,4 +1,5 @@
 ﻿using Identity.Application.Models;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -18,6 +19,18 @@ namespace Identity.Application.Contracts
     /// </summary>
     /// <param name="id">Id of client to be deleted</param>
     void DeleteClient(string id);
+
+    /// <summary>
+    /// Saves a new uplaod client
+    /// </summary>
+    /// <param name="client">The <see cref="UploadClient"/> to be saved</param>
+    Task CreateUploadClient(UploadClient client);
+
+    /// <summary>
+    /// Lists the ids of the existing upload clients
+    /// </summary>
+    /// <returns><see cref="IList{T}"/> of client ids</returns>
+    IList<Guid> ListUploadClientIds();
 
     /// <summary>
     /// Creates a new Client
@@ -47,5 +60,17 @@ namespace Identity.Application.Contracts
     /// <param name="clientId">Id of the client</param>
     /// <returns>Base64 string of the public key or null if no public key is stored for client.</returns>
     string? GetPublicKey(string clientId);
+
+    /// <summary>
+    /// Determines if one admin app client is created already
+    /// </summary>
+    /// <returns>True if admin app client exists.</returns>
+    bool AdminAppExists();
+
+    /// <summary>
+    /// Creates admin app and returns the Client id
+    /// </summary>
+    /// <returns><see cref="Guid"/> of the client id.</returns>
+    Task<Guid> CreateAdminApp();
   }
 }

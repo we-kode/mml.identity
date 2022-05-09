@@ -1,5 +1,4 @@
-﻿using Identity.Application;
-using Identity.Application.Contracts;
+﻿using Identity.Application.Contracts;
 using Identity.Application.Models;
 using Microsoft.AspNetCore.Identity;
 using System;
@@ -12,7 +11,7 @@ namespace Identity.Infrastructure
   public class SqlIdentityRepository : IIdentityRepository
   {
     private readonly UserManager<IdentityUser<long>> _userManager;
-    private const string ADMIN_ROLE = Roles.ADMIN;
+    private const string ADMIN_ROLE = Application.IdentityConstants.Roles.Admin;
 
     public SqlIdentityRepository(UserManager<IdentityUser<long>> userManager)
     {
