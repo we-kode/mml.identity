@@ -1,10 +1,14 @@
-#See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
-
 FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
+ARG USERNAME=mml
+ARG UID
+ARG GID
+RUN groupadd --gid $GID $USERNAME \
+    && useradd --uid $UID --gid $GID -m $USERNAME
+USER $USERNAME
 WORKDIR /app
 EXPOSE 5051
 ENV ASPNETCORE_ENVIRONMENT=Release
-RUN echo 'alias create="dotnet /app/create/Identity.CLI.dll"' >> ~/.bashrc && \
+RUN echo 'alias create="dotnet /app/cli/Identity.CLI.dll"' >> ~/.bashrc && \
     echo 'alias upload-create="dotnet /app/cli/Identity.CLI.dll -uc"' >> ~/.bashrc && \
     echo 'alias upload-list="dotnet /app/cli/Identity.CLI.dll -ul"' >> ~/.bashrc && \
     echo 'alias upload-remove="dotnet /app/cli/Identity.CLI.dll -ud"' >> ~/.bashrc
