@@ -84,15 +84,19 @@ namespace Identity.Controllers
     {
       if (await _repository.UserExists(request.Name).ConfigureAwait(false))
       {
-        return BadRequest("USER_UNIQUE_CONSTRAINT_FAILED");
+        ModelState.AddModelError(nameof(UserCreationRequest.Name), "USER_UNIQUE_CONSTRAINT_FAILED");
       }
 
       if (string.IsNullOrEmpty(request.Password))
       {
-        return BadRequest("USER_EMPTY_PASSWORD");
+        ModelState.AddModelError(nameof(UserCreationRequest.Password), "USER_EMPTY_PASSWORD");
       }
 
-      var user = await _service.Create(request.Name, request.Password).ConfigureAwait(false);
+      if (!ModelState.IsValid) {
+        return BadRequest(ModelState);
+      }
+
+      var user = await _service.Create(request.Name, request.Password!).ConfigureAwait(false);
       return Created($"/user/{user.Id}", user);
     }
 

@@ -83,11 +83,11 @@ namespace Identity.Controllers
     /// <returns>The new application client</returns>
     /// <response code="400">If update fails or information are invalid.</response>
     /// <response code="403">If invalid token is provided.</response>
-    /// <response code="490">If client creation failed.</response>
+    /// <response code="HttpStatusCodes.BusinessError">If client creation failed.</response>
     [HttpPost("register/{regToken}")]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(490)]
+    [ProducesResponseType(HttpStatusCodes.BusinessError)]
     [AllowAnonymous]
     [ServiceFilter(typeof(TokenRegistrationFilter))]
     public async Task<ActionResult<ApplicationClient>> Register([FromBody] RegisterClientRequest request, string regToken, [FromQuery] string? conId)
@@ -105,7 +105,7 @@ namespace Identity.Controllers
       var client = await _service.CreateClient(request.Base64PublicKey).ConfigureAwait(false);
       if (client == null)
       {
-        return StatusCode(490, "CLIENT_CREATION_FAILED");
+        return StatusCode(HttpStatusCodes.BusinessError, "CLIENT_CREATION_FAILED");
       }
       await hubContext.Clients.Group(conId!).SendAsync("CLIENT_REGISTERED", client.ClientId).ConfigureAwait(false);
       return client;

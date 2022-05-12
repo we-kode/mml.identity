@@ -46,7 +46,7 @@ namespace Identity.Controllers
     [Consumes("application/x-www-form-urlencoded")]
     public async Task<IActionResult> Exchange()
     {
-      var request = HttpContext.GetOpenIddictServerRequest() ?? throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
+      var request = HttpContext.GetOpenIddictServerRequest() ?? throw new InvalidOperationException();
       if (request.IsPasswordGrantType())
       {
         if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
@@ -83,9 +83,9 @@ namespace Identity.Controllers
       {
         // return refreshed token, if refresh token is valid. else unauthorized
         var principal = (await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme)).Principal
-                ?? throw new InvalidOperationException("Principal could not be retrived from request");
+                ?? throw new InvalidOperationException();
         var userId = principal.GetClaim(Claims.Subject)
-                ?? throw new InvalidOperationException("The Subject could not retrieved from token");
+                ?? throw new InvalidOperationException();
 
         if (!await _identityRepository.UserExists(long.Parse(userId)).ConfigureAwait(false))
         {
@@ -93,8 +93,7 @@ namespace Identity.Controllers
               authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
               properties: new AuthenticationProperties(new Dictionary<string, string?>
               {
-                [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
-                [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The token is no longer valid."
+                [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant
               }));
         }
 
@@ -104,8 +103,7 @@ namespace Identity.Controllers
               authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
               properties: new AuthenticationProperties(new Dictionary<string, string?>
               {
-                [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant,
-                [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The user is no longer allowed to sign in."
+                [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant
               }));
         }
 

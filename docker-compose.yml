@@ -4,6 +4,10 @@ services:
     build:
       context: .
       dockerfile: Identity.API/Dockerfile
+      args:
+        - UID=${UID}
+        - GID=${GUID}
+        - DOT_NET_BUILD_CONFIG=${DOT_NET_BUILD_CONFIG}
     container_name: wekode.mml.identity
     restart: always
     user: ${UID}:${GUID}

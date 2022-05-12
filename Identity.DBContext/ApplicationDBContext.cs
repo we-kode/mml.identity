@@ -12,7 +12,7 @@ namespace Identity.DBContext
     {
     }
 
-    public DbSet<OpenIddictClientApplication> Applications { get; set; }
+    public DbSet<OpenIddictClientApplication> Applications => Set<OpenIddictClientApplication>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) => optionsBuilder.UseSnakeCaseNamingConvention();
 
