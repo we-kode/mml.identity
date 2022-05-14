@@ -33,6 +33,7 @@ namespace Identity.Infrastructure
       }
 
       await _userManager.AddToRoleAsync(login, ADMIN_ROLE).ConfigureAwait(false);
+      await _userManager.AddPasswordAsync(login, initPassword).ConfigureAwait(false);
 
       return new User(login.Id, userName, true, login.EmailConfirmed);
     }
