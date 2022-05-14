@@ -73,7 +73,8 @@ namespace Identity.Infrastructure
         {
           OpenIddictConstants.Permissions.Endpoints.Token,
           OpenIddictConstants.Permissions.GrantTypes.ClientCredentials
-        })
+        }),
+        Type = OpenIddictConstants.ClientTypes.Confidential
       };
       context.Applications.Add(client);
       await context.SaveChangesAsync().ConfigureAwait(false);
@@ -100,8 +101,8 @@ namespace Identity.Infrastructure
           OpenIddictConstants.Permissions.GrantTypes.Password,
           OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
           OpenIddictConstants.Scopes.OfflineAccess,
-
-        })
+        }),
+        Type = OpenIddictConstants.ClientTypes.Public
       };
       context.Applications.Add(client);
       await context.SaveChangesAsync().ConfigureAwait(false);
@@ -121,7 +122,8 @@ namespace Identity.Infrastructure
           OpenIddictConstants.Permissions.Endpoints.Token,
           OpenIddictConstants.Permissions.GrantTypes.ClientCredentials,
           OpenIddictConstants.Permissions.Prefixes.Scope + Scopes.Upload
-        })
+        }),
+        Type = OpenIddictConstants.ClientTypes.Confidential
       };
       context.Applications.Add(appClient);
       await context.SaveChangesAsync().ConfigureAwait(false);
