@@ -37,12 +37,8 @@ namespace Identity.Controllers
     /// </summary>
     /// <returns>The bearer token on successful signin.</returns>
     /// <response code="401">If authorization fails.</response>
-    /// <response code="400">If grant type is not supported.</response>
-    /// <response code="403">If token is invalid or user is not active.</response>
     [HttpPost("token")]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [Consumes("application/x-www-form-urlencoded")]
     public async Task<IActionResult> Exchange()
     {
@@ -51,7 +47,7 @@ namespace Identity.Controllers
       {
         if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
         {
-          return BadRequest();
+          return Unauthorized();
         }
 
         // login user and return token
@@ -89,22 +85,12 @@ namespace Identity.Controllers
 
         if (!await _identityRepository.UserExists(long.Parse(userId)).ConfigureAwait(false))
         {
-          return Forbid(
-              authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-              properties: new AuthenticationProperties(new Dictionary<string, string?>
-              {
-                [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant
-              }));
+          return Unauthorized();
         }
 
         if (!await _identityRepository.IsActive(long.Parse(userId)).ConfigureAwait(false))
         {
-          return Forbid(
-              authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-              properties: new AuthenticationProperties(new Dictionary<string, string?>
-              {
-                [OpenIddictServerAspNetCoreConstants.Properties.Error] = Errors.InvalidGrant
-              }));
+          return Unauthorized();
         }
 
         foreach (var claim in principal.Claims)
@@ -161,10 +147,7 @@ namespace Identity.Controllers
         return SignIn(claimsPrincipal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
       }
 
-      return BadRequest(new OpenIddictResponse
-      {
-        Error = Errors.UnsupportedGrantType
-      });
+      return Unauthorized();
     }
 
     /// <summary>
@@ -184,5 +167,10 @@ namespace Identity.Controllers
       var user = await _identityRepository.GetUser(userId).ConfigureAwait(false);
       return Ok(user);
     }
+
+    /// <summary>
+    /// Returns user info
+    /// </summary>
+    /// <returns><see cref="User"/></returns>
   }
 }

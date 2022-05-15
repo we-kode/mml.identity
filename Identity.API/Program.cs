@@ -29,7 +29,7 @@ using System;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration
-    .AddJsonFile("/configs/appsettings.json", true, true);
+  .AddJsonFile(builder.Environment.IsEnvironment("Test") ? "./test.appsettings.json" : "/config/appsettings.json");
 
 #region services
 // Add services to the container.
