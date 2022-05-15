@@ -200,6 +200,25 @@ namespace IdentityService.Test
       Assert.Equal(TestApplication.UserName, userSettings.Name);
     }
 
+    [Fact]
+    public async void Test_Logout()
+    {
+      var originalAuthorization = client.DefaultRequestHeaders.Authorization;
+
+      client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "xyz");
+
+      var result = await client.PostAsync("/api/v1.0/identity/connect/logout", new FormUrlEncodedContent(new List<KeyValuePair<string, string>>()));
+      Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
+
+      client.DefaultRequestHeaders.Authorization = originalAuthorization;
+
+      result = await client.PostAsync("/api/v1.0/identity/connect/logout", new FormUrlEncodedContent(new List<KeyValuePair<string, string>>()));
+      Assert.Equal(HttpStatusCode.OK, result.StatusCode);
+
+      result = await client.GetAsync("/api/v1.0/identity/connect/userinfo");
+      Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
+    }
+
     private async Task _Authorize()
     {
       // send auth request

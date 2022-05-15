@@ -10,7 +10,6 @@ using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
 using System;
-using System.Collections.Generic;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -25,11 +24,13 @@ namespace Identity.Controllers
   {
     private readonly IIdentityRepository _identityRepository;
     private readonly IClientRepository _clientRepository;
+    private readonly IOpenIddictTokenManager _tokenManager;
 
-    public AuthenticationController(IIdentityRepository identityRepository, IClientRepository clientRepository)
+    public AuthenticationController(IIdentityRepository identityRepository, IClientRepository clientRepository, IOpenIddictTokenManager tokenManager)
     {
       _identityRepository = identityRepository;
       _clientRepository = clientRepository;
+      _tokenManager = tokenManager;
     }
 
     /// <summary>
@@ -169,8 +170,25 @@ namespace Identity.Controllers
     }
 
     /// <summary>
-    /// Returns user info
+    /// Logs out the current user.
     /// </summary>
-    /// <returns><see cref="User"/></returns>
+    /// <returns></returns>
+    [HttpPost("logout")]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
+    public async Task<IActionResult> Logout()
+    {
+      var userIdClaim = HttpContext.User.GetClaim(Claims.Subject);
+      if (!long.TryParse(userIdClaim, out var userId) || !await _identityRepository.UserExists(userId))
+      {
+        return SignOut(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+      }
+
+      await foreach (var token in _tokenManager.FindBySubjectAsync(userId.ToString()).ConfigureAwait(false))
+      {
+        await _tokenManager.TryRevokeAsync(token).ConfigureAwait(false);
+      }
+
+      return SignOut(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
   }
 }
