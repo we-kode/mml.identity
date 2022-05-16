@@ -12,13 +12,11 @@ namespace Identity.Infrastructure
   public class SqlIdentityRepository : IIdentityRepository
   {
     private readonly UserManager<IdentityUser<long>> _userManager;
-    private readonly IOpenIddictTokenManager _tokenManager;
     private const string ADMIN_ROLE = Roles.Admin;
 
-    public SqlIdentityRepository(UserManager<IdentityUser<long>> userManager, IOpenIddictTokenManager tokenManager)
+    public SqlIdentityRepository(UserManager<IdentityUser<long>> userManager)
     {
       _userManager = userManager;
-      _tokenManager = tokenManager;
     }
 
     public async Task<User> CreateNewUser(string userName, string initPassword)
@@ -128,10 +126,6 @@ namespace Identity.Infrastructure
       await _userManager.UpdateAsync(user).ConfigureAwait(false);
       await _userManager.RemovePasswordAsync(user).ConfigureAwait(false);
       await _userManager.AddPasswordAsync(user, changedPassword).ConfigureAwait(false);
-      await foreach (var token in _tokenManager.FindBySubjectAsync(id.ToString()).ConfigureAwait(false))
-      {
-        await _tokenManager.TryRevokeAsync(token).ConfigureAwait(false);
-      }
     }
 
     public async Task<bool> IsActive(long userId)
