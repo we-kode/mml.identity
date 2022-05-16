@@ -38,12 +38,17 @@ namespace IdentityService.Test
       var filterString = string.IsNullOrEmpty(filter) ? "" : $"?filter={filter}";
       var result = await client.GetAsync($"/api/v1.0/identity/user/list{filterString}");
       Assert.Equal(HttpStatusCode.OK, result.StatusCode);
-      var users = JsonConvert.DeserializeObject<IList<User>>(await result.Content.ReadAsStringAsync());
-      Assert.True(count == -1 ? users.Count >= 0 : users.Count == count);
-      if (users.Count > 0)
+      var users = JsonConvert.DeserializeObject<Users>(await result.Content.ReadAsStringAsync());
+      Assert.True(count == -1 ? users.TotalCount >= 0 : users.TotalCount == count);
+      if (users.TotalCount > 0)
       {
-        Assert.Contains(users, user => user.Name == TestApplication.UserName);
+        Assert.Contains(users.Items, user => user.Name == TestApplication.UserName);
       }
+
+      result = await client.GetAsync($"/api/v1.0/identity/user/list?skip=0&take=0");
+      Assert.Equal(HttpStatusCode.OK, result.StatusCode);
+      users = JsonConvert.DeserializeObject<Users>(await result.Content.ReadAsStringAsync());
+      Assert.Equal(1, users.TotalCount);
 
       client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "xyz");
       result = await client.GetAsync($"/api/v1.0/identity/user/list{filterString}");

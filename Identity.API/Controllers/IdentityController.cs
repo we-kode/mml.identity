@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Identity.Controllers
@@ -33,11 +32,13 @@ namespace Identity.Controllers
     /// Loads a list of existing users.
     /// </summary>
     /// <param name="request">Filter request to filter the list pof users</param>
-    /// <returns><see cref="IList{T}"/> of <see cref="User"/></returns>
+    /// <param name="skip">Offset of the list</param>
+    /// <param name="take">Size of chunk to be loaded</param>
+    /// <returns><see cref="Users"/></returns>
     [HttpGet("list")]
-    public IList<User> List([FromQuery] string? filter)
+    public Users List([FromQuery] string? filter, [FromQuery] int skip = Application.IdentityConstants.List.Skip, [FromQuery] int take = Application.IdentityConstants.List.Take)
     {
-      return _repository.ListUsers(filter);
+      return _repository.ListUsers(filter, skip, take);
     }
 
     /// <summary>

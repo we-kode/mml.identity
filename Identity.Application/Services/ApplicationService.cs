@@ -1,5 +1,6 @@
 ﻿using Identity.Application.Contracts;
 using Identity.Application.Models;
+using OpenIddict.Abstractions;
 using System;
 using System.Threading.Tasks;
 
@@ -11,12 +12,13 @@ namespace Identity.Application
   public class ApplicationService
   {
     private readonly IIdentityRepository _identityRepository;
+    private readonly IOpenIddictTokenManager _tokenManager;
 
-    public ApplicationService(IIdentityRepository identityRepository)
+    public ApplicationService(IIdentityRepository identityRepository, IOpenIddictTokenManager tokenManager)
     {
       _identityRepository = identityRepository;
+      _tokenManager = tokenManager;
     }
-
 
     /// <summary>
     /// Creates a new user login
@@ -61,6 +63,19 @@ namespace Identity.Application
       if (!string.IsNullOrEmpty(changedPassword))
       {
         await _identityRepository.ResetPassword(id, changedPassword).ConfigureAwait(false);
+        await RevokeTokens(id).ConfigureAwait(false);
+      }
+    }
+
+    /// <summary>
+    /// Revokes all tokens of one user
+    /// </summary>
+    /// <param name="userId">Id of uiser</param>
+    public async Task RevokeTokens(long userId)
+    {
+      await foreach (var token in _tokenManager.FindBySubjectAsync(userId.ToString()).ConfigureAwait(false))
+      {
+        await _tokenManager.TryRevokeAsync(token).ConfigureAwait(false);
       }
     }
 

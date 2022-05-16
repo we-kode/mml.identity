@@ -21,6 +21,7 @@ namespace Identity.Sockets
     private const string REGISTRATION_TOKEN_INTERVAL = "REGISTRATION_TOKEN_INTERVAL_MIN";
     private const string TOKEN_LENGTH = "TOKEN_LENGTH";
     private const string REGISTRATION_SECTION = "Registration";
+    private const string APP_KEY = "APP_KEY";
 
     private readonly IConfiguration _configuration;
     private readonly IDistributedCache _cache;
@@ -41,7 +42,7 @@ namespace Identity.Sockets
 
     public async Task UpdateRegistrationToken(string connectionId, string registrationToken)
     {
-      await _hubContext.Clients.Group(connectionId).SendAsync("REGISTER_TOKEN_UPDATED", registrationToken).ConfigureAwait(false);
+      await _hubContext.Clients.Group(connectionId).SendAsync("REGISTER_TOKEN_UPDATED", new RegistrationInformation(registrationToken, _configuration[APP_KEY])).ConfigureAwait(false);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)

@@ -1,5 +1,6 @@
 ﻿using Identity.Application.Contracts;
 using Identity.Application.Models;
+using Identity.Sockets;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,6 +8,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -66,7 +68,7 @@ namespace IdentityService.Test
 
       result = await client.PostAsync("/api/v1.0/identity/client", content);
       Assert.Equal(HttpStatusCode.OK, result.StatusCode);
-      Assert.Contains(clientRepository.ListClients(null), client => client.DisplayName == "abc");
+      Assert.Contains(clientRepository.ListClients(null).Items, client => client.DisplayName == "abc");
     }
 
     [Fact]
@@ -84,13 +86,18 @@ namespace IdentityService.Test
 
       var result = await client.GetAsync("/api/v1.0/identity/client/list");
       result.EnsureSuccessStatusCode();
-      var clients = JsonConvert.DeserializeObject<IList<Client>>(await result.Content.ReadAsStringAsync());
-      Assert.True(clients.Count >= 3);
+      var clients = JsonConvert.DeserializeObject<Clients>(await result.Content.ReadAsStringAsync());
+      Assert.Equal(3, clients.TotalCount);
 
       result = await client.GetAsync("/api/v1.0/identity/client/list?filter=d");
-      clients = JsonConvert.DeserializeObject<IList<Client>>(await result.Content.ReadAsStringAsync());
-      Assert.Equal(1, clients.Count);
-      Assert.Contains(clients, client => client.ClientId == "def");
+      clients = JsonConvert.DeserializeObject<Clients>(await result.Content.ReadAsStringAsync());
+      Assert.Equal(1, clients.TotalCount);
+      Assert.Contains(clients.Items, client => client.ClientId == "def");
+
+      result = await client.GetAsync("/api/v1.0/identity/client/list?skip=0&take=1");
+      result.EnsureSuccessStatusCode();
+      clients = JsonConvert.DeserializeObject<Clients>(await result.Content.ReadAsStringAsync());
+      Assert.Equal(3, clients.TotalCount);
     }
 
     [Fact]
@@ -106,7 +113,7 @@ namespace IdentityService.Test
       result = await client.DeleteAsync($"/api/v1.0/identity/client/clientToDelete");
       result.EnsureSuccessStatusCode();
 
-      Assert.Equal(0, clientRepository.ListClients("clientToDelete").Count);
+      Assert.Equal(0, clientRepository.ListClients("clientToDelete").TotalCount);
     }
 
     [Fact]
@@ -130,10 +137,11 @@ namespace IdentityService.Test
               options.CloseTimeout = TimeSpan.FromMinutes(5);
             })
             .Build();
-      connection.On<string>("REGISTER_TOKEN_UPDATED", t =>
+      connection.On<RegistrationInformation>("REGISTER_TOKEN_UPDATED", t =>
       {
-        Assert.True(!string.IsNullOrEmpty(t));
-        token = t;
+        Assert.True(!string.IsNullOrEmpty(t.Token));
+        Assert.Equal("def", t.AppKey);
+        token = t.Token;
       });
       connection.On<string>("CLIENT_REGISTERED", clientId =>
       {

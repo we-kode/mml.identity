@@ -1,3 +1,4 @@
+using Identity.Application;
 using Identity.Application.Contracts;
 using Identity.Application.IdentityConstants;
 using Identity.Extensions;
@@ -24,13 +25,13 @@ namespace Identity.Controllers
   {
     private readonly IIdentityRepository _identityRepository;
     private readonly IClientRepository _clientRepository;
-    private readonly IOpenIddictTokenManager _tokenManager;
+    private readonly ApplicationService _applicationService;
 
-    public AuthenticationController(IIdentityRepository identityRepository, IClientRepository clientRepository, IOpenIddictTokenManager tokenManager)
+    public AuthenticationController(IIdentityRepository identityRepository, IClientRepository clientRepository, ApplicationService applicationService)
     {
       _identityRepository = identityRepository;
       _clientRepository = clientRepository;
-      _tokenManager = tokenManager;
+      _applicationService = applicationService;
     }
 
     /// <summary>
@@ -183,10 +184,7 @@ namespace Identity.Controllers
         return SignOut(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
       }
 
-      await foreach (var token in _tokenManager.FindBySubjectAsync(userId.ToString()).ConfigureAwait(false))
-      {
-        await _tokenManager.TryRevokeAsync(token).ConfigureAwait(false);
-      }
+      await _applicationService.RevokeTokens(userId).ConfigureAwait(false);
 
       return SignOut(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
     }

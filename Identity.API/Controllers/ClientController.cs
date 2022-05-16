@@ -40,12 +40,14 @@ namespace Identity.Controllers
     /// <summary>
     /// Loads a list of existing clients.
     /// </summary>
-    /// <param name="request">Filter request to filter the list pof users</param>
-    /// <returns><see cref="IList{T}"/> of <see cref="Client"/></returns>
+    /// <param name="request">Filter request to filter the list of clients</param>
+    /// <param name="skip">Offset of the list</param>
+    /// <param name="take">Size of chunk to be loaded</param>
+    /// <returns><see cref="Clients"/></returns>
     [HttpGet("list")]
-    public IList<Client> List([FromQuery] string? filter)
+    public Clients List([FromQuery] string? filter, [FromQuery] int skip = Application.IdentityConstants.List.Skip, [FromQuery] int take = Application.IdentityConstants.List.Take)
     {
-      return clientRepository.ListClients(filter);
+      return clientRepository.ListClients(filter, skip, take);
     }
 
     /// <summary>
