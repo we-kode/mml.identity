@@ -23,15 +23,27 @@ namespace Identity.Infrastructure
       _contextFactory = contextFactory;
     }
 
-    public IList<Client> ListClients(string? filter)
+    public Clients ListClients(string? filter, int skip, int take)
     {
       using var context = _contextFactory();
-      return context.Applications
+      var query = context.Applications
         .Where(app => !string.IsNullOrEmpty(app.Permissions) && !app.Permissions.Contains(Scopes.Upload))
         .Where(app => app.Permissions!.Contains(OpenIddictConstants.GrantTypes.ClientCredentials))
         .Where(app => string.IsNullOrEmpty(filter) || (app.DisplayName ?? "").Contains(filter, StringComparison.OrdinalIgnoreCase))
+        .OrderBy(app => app.DisplayName)
+        .Skip(skip)
+        .Take(take);
+
+      var count = query.Count();
+      var clients = query
         .Select(app => new Client(app.ClientId ?? "", app.DisplayName ?? ""))
         .ToList();
+
+      return new Clients
+      {
+        TotalCount = count,
+        Items = clients
+      };
     }
 
     public void DeleteClient(string id)

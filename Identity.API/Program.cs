@@ -8,6 +8,7 @@ using Identity.Contracts;
 using Identity.DBContext;
 using Identity.DBContext.Models;
 using Identity.Filters;
+using Identity.Handlers;
 using Identity.Infrastructure;
 using Identity.Middleware;
 using Identity.Sockets;
@@ -25,6 +26,7 @@ using OpenIddict.Validation.AspNetCore;
 using Quartz;
 using ScottBrady91.AspNetCore.Identity;
 using System;
+using static OpenIddict.Server.OpenIddictServerEvents;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -140,6 +142,9 @@ builder.Services.AddOpenIddict()
 
       options.UseReferenceAccessTokens();
       options.UseReferenceRefreshTokens();
+
+      options.AddEventHandler<ApplyTokenResponseContext>(builder =>
+            builder.UseSingletonHandler<ApplyTokenResponseHandler>());
 
       options.SetAccessTokenLifetime(TimeSpan.FromMinutes(int.Parse(builder.Configuration["OpenId:AccessTokenLifetimeMinutes"])));
       options.SetRefreshTokenLifetime(TimeSpan.FromMinutes(int.Parse(builder.Configuration["OpenId:RefreshTokenLifetimeMinutes"])));

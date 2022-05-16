@@ -1,8 +1,9 @@
 ﻿using Identity.Application.Contracts;
+using Identity.Application.IdentityConstants;
 using Identity.Application.Models;
 using Microsoft.AspNetCore.Identity;
+using OpenIddict.Abstractions;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -11,11 +12,13 @@ namespace Identity.Infrastructure
   public class SqlIdentityRepository : IIdentityRepository
   {
     private readonly UserManager<IdentityUser<long>> _userManager;
-    private const string ADMIN_ROLE = Application.IdentityConstants.Roles.Admin;
+    private readonly IOpenIddictTokenManager _tokenManager;
+    private const string ADMIN_ROLE = Roles.Admin;
 
-    public SqlIdentityRepository(UserManager<IdentityUser<long>> userManager)
+    public SqlIdentityRepository(UserManager<IdentityUser<long>> userManager, IOpenIddictTokenManager tokenManager)
     {
       _userManager = userManager;
+      _tokenManager = tokenManager;
     }
 
     public async Task<User> CreateNewUser(string userName, string initPassword)
@@ -44,12 +47,21 @@ namespace Identity.Infrastructure
       return result != null;
     }
 
-    public IList<User> ListUsers(string? filter)
+    public Users ListUsers(string? filter, int skip = List.Skip, int take = List.Take)
     {
-      return _userManager.Users
+      var query = _userManager.Users
           .Where(user => string.IsNullOrEmpty(filter) || user.UserName.Contains(filter, StringComparison.OrdinalIgnoreCase))
-          .Select(user => new User(user.Id, user.UserName, _userManager.IsInRoleAsync(user, ADMIN_ROLE).Result, user.EmailConfirmed))
+          .OrderBy(user => user.UserName)
+          .Skip(skip)
+          .Take(take);
+      var count = query.Count();
+      var items = query.Select(user => new User(user.Id, user.UserName, _userManager.IsInRoleAsync(user, ADMIN_ROLE).Result, user.EmailConfirmed))
           .ToList();
+      return new Users
+      {
+        TotalCount = count,
+        Items = items
+      };
     }
 
     public async Task<bool> UserExists(long id)
@@ -115,6 +127,10 @@ namespace Identity.Infrastructure
       await _userManager.UpdateAsync(user).ConfigureAwait(false);
       await _userManager.RemovePasswordAsync(user).ConfigureAwait(false);
       await _userManager.AddPasswordAsync(user, changedPassword).ConfigureAwait(false);
+      await foreach (var token in _tokenManager.FindBySubjectAsync(id.ToString()).ConfigureAwait(false))
+      {
+        await _tokenManager.TryRevokeAsync(token).ConfigureAwait(false);
+      }
     }
 
     public async Task<bool> IsActive(long userId)

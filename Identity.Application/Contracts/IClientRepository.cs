@@ -1,4 +1,5 @@
-﻿using Identity.Application.Models;
+﻿using Identity.Application.IdentityConstants;
+using Identity.Application.Models;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -11,8 +12,10 @@ namespace Identity.Application.Contracts
     /// Loads list of clients.
     /// </summary>
     /// <param name="filter">Clients will be filtered by given string</param>
-    /// <returns>List of <see cref="Client"/></returns>
-    IList<Client> ListClients(string? filter = null);
+    /// <param name="skip">Elements to be skipped. default <see cref="List.Skip"/></param>
+    /// <param name="filter">Elements to be loaded in one chunk. Default <see cref="List.Take"/></param>
+    /// <returns><see cref="Clients"/></returns>
+    Clients ListClients(string? filter = null, int skip = List.Skip, int take = List.Take);
 
     /// <summary>
     /// Deletes one client

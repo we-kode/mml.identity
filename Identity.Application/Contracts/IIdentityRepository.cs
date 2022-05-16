@@ -1,4 +1,5 @@
-﻿using Identity.Application.Models;
+﻿using Identity.Application.IdentityConstants;
+using Identity.Application.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -32,8 +33,10 @@ namespace Identity.Application.Contracts
     /// Loads list of users.
     /// </summary>
     /// <param name="filter">Users will be filtered by given string</param>
-    /// <returns>List of <see cref="User"/></returns>
-    IList<User> ListUsers(string? filter);
+    /// <param name="skip">Offset of the list</param>
+    /// <param name="take">Size of chunk to be loaded</param>
+    /// <returns><see cref="Users"/></returns>
+    Users ListUsers(string? filter, int skip = List.Skip, int take = List.Take);
 
     /// <summary>
     /// Removes one user
