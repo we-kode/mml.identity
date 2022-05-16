@@ -32,20 +32,12 @@ namespace IdentityService.Test
       oAuthCLient.Permissions.Add("scp:offline_access");
 
       Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Test");
-      var configuration = new ConfigurationBuilder()
-          .AddInMemoryCollection(new Dictionary<string, string>
-          {
-                    { "ADMIN_APP_KEY", "abc" },
-                    { "APP_KEY", "def" },
-          })
-          .Build();
 
       var memoryDBName = Guid.NewGuid().ToString();
 
       return new WebApplicationFactory<Program>()
           .WithWebHostBuilder(builder =>
           {
-            builder.UseConfiguration(configuration);
             builder.UseEnvironment("Test");
 
             builder.ConfigureServices(services =>

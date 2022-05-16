@@ -29,7 +29,7 @@ using System;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration
-    .AddJsonFile("/configs/appsettings.json", true, true);
+  .AddJsonFile(builder.Environment.IsEnvironment("Test") ? "./test.appsettings.json" : "/configs/appsettings.json");
 
 #region services
 // Add services to the container.
@@ -135,7 +135,8 @@ builder.Services.AddOpenIddict()
       options.AllowClientCredentialsFlow();
 
       options.SetTokenEndpointUris("/api/v1.0/identity/connect/token")
-             .SetUserinfoEndpointUris("/api/v1.0/identity/connect/userinfo");
+             .SetUserinfoEndpointUris("/api/v1.0/identity/connect/userinfo")
+             .SetLogoutEndpointUris("/api/v1.0/identity/connect/logout");
 
       options.UseReferenceAccessTokens();
       options.UseReferenceRefreshTokens();
@@ -159,7 +160,8 @@ builder.Services.AddOpenIddict()
 
       var openidBuilder = options.UseAspNetCore()
              .EnableTokenEndpointPassthrough()
-             .EnableUserinfoEndpointPassthrough();
+             .EnableUserinfoEndpointPassthrough()
+             .EnableLogoutEndpointPassthrough();
 
       if (builder.Environment.IsEnvironment("Test"))
       {

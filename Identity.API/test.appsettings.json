@@ -1,0 +1,32 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Warning",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ADMIN_APP_KEY": "abc", 
+  "APP_KEY": "def",
+  "Registration": {
+    "REGISTRATION_TOKEN_INTERVAL_MIN": "1",
+    "TOKEN_LENGTH":  "64"
+  },
+  "TLS": {
+    "Cert": "/certs/dev.wekode.pfx",
+    "Password": "<password>"
+  },
+  "OpenId": {
+    "EncryptionCert": "/certs/identity.encrypt.pfx",
+    "SigningCert": "/certs/identity.sign.pfx",
+    "AccessTokenLifetimeMinutes": "60",
+    "RefreshTokenLifetimeMinutes": "43200",
+    "RefreshTokenReuseLeewaySeconds": "10",
+    "TokenLifespanMinutes": "15",
+    "CleanOrphanTokenDays": "1"
+  },
+  "ConnectionStrings": {
+    "IdentityConnection": "Server=wekode.mml.db;Port=5432;Database=identity;User Id=identity;Password=identity;",
+    "DistributedCache": "wekode.mml.cache:7379,ssl=true,password=<password>"
+  }
+}
