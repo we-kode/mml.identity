@@ -87,12 +87,17 @@ namespace IdentityService.Test
       var result = await client.GetAsync("/api/v1.0/identity/client/list");
       result.EnsureSuccessStatusCode();
       var clients = JsonConvert.DeserializeObject<Clients>(await result.Content.ReadAsStringAsync());
-      Assert.True(clients.TotalCount >= 3);
+      Assert.Equal(3, clients.TotalCount);
 
       result = await client.GetAsync("/api/v1.0/identity/client/list?filter=d");
       clients = JsonConvert.DeserializeObject<Clients>(await result.Content.ReadAsStringAsync());
       Assert.Equal(1, clients.TotalCount);
       Assert.Contains(clients.Items, client => client.ClientId == "def");
+
+      result = await client.GetAsync("/api/v1.0/identity/client/list?skip=0&take=1");
+      result.EnsureSuccessStatusCode();
+      clients = JsonConvert.DeserializeObject<Clients>(await result.Content.ReadAsStringAsync());
+      Assert.Equal(3, clients.TotalCount);
     }
 
     [Fact]

@@ -45,6 +45,11 @@ namespace IdentityService.Test
         Assert.Contains(users.Items, user => user.Name == TestApplication.UserName);
       }
 
+      result = await client.GetAsync($"/api/v1.0/identity/user/list?skip=0&take=0");
+      Assert.Equal(HttpStatusCode.OK, result.StatusCode);
+      users = JsonConvert.DeserializeObject<Users>(await result.Content.ReadAsStringAsync());
+      Assert.Equal(1, users.TotalCount);
+
       client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "xyz");
       result = await client.GetAsync($"/api/v1.0/identity/user/list{filterString}");
       Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
