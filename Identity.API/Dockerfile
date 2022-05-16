@@ -2,7 +2,9 @@ FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
 ARG USERNAME=mml
 ARG UID
 ARG GID
-
+RUN groupadd --gid $GID $USERNAME \
+    && useradd --uid $UID --gid $GID -m $USERNAME
+USER $USERNAME
 WORKDIR /app
 EXPOSE 5051
 ENV ASPNETCORE_ENVIRONMENT=Release
