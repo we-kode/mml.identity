@@ -51,11 +51,12 @@ namespace Identity.Infrastructure
     {
       var query = _userManager.Users
           .Where(user => string.IsNullOrEmpty(filter) || user.UserName.Contains(filter, StringComparison.OrdinalIgnoreCase))
-          .OrderBy(user => user.UserName)
-          .Skip(skip)
-          .Take(take);
+          .OrderBy(user => user.UserName);
+
       var count = query.Count();
       var items = query.Select(user => new User(user.Id, user.UserName, _userManager.IsInRoleAsync(user, ADMIN_ROLE).Result, user.EmailConfirmed))
+          .Skip(skip)
+          .Take(take)
           .ToList();
       return new Users
       {

@@ -30,13 +30,13 @@ namespace Identity.Infrastructure
         .Where(app => !string.IsNullOrEmpty(app.Permissions) && !app.Permissions.Contains(Scopes.Upload))
         .Where(app => app.Permissions!.Contains(OpenIddictConstants.GrantTypes.ClientCredentials))
         .Where(app => string.IsNullOrEmpty(filter) || (app.DisplayName ?? "").Contains(filter, StringComparison.OrdinalIgnoreCase))
-        .OrderBy(app => app.DisplayName)
-        .Skip(skip)
-        .Take(take);
+        .OrderBy(app => app.DisplayName);
 
       var count = query.Count();
       var clients = query
         .Select(app => new Client(app.ClientId ?? "", app.DisplayName ?? ""))
+        .Skip(skip)
+        .Take(take)
         .ToList();
 
       return new Clients
