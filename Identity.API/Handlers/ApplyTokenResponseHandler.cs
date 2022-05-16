@@ -13,6 +13,7 @@ namespace Identity.Handlers
       {
         response.Error = "Error occurred";
         response.ErrorDescription = string.Empty;
+        response.ErrorUri = string.Empty;
       }
 
       return default;
