@@ -16,7 +16,7 @@ namespace Identity.Contracts
     /// <summary>
     /// the password
     /// </summary>
-    [MinLength(12)]
+    [MinLength(12, ErrorMessageResourceName = "MinLength", ErrorMessageResourceType = typeof(Resources.ValidationMessages))]
     public string? Password { get; set; }
 
     /// <summary>
