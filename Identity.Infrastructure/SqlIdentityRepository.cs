@@ -2,7 +2,6 @@
 using Identity.Application.IdentityConstants;
 using Identity.Application.Models;
 using Microsoft.AspNetCore.Identity;
-using OpenIddict.Abstractions;
 using System;
 using System.Linq;
 using System.Threading.Tasks;

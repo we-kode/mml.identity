@@ -75,6 +75,14 @@ builder.Services.AddCors(options =>
 });
 #endregion
 
+#region localizations
+builder.Services.AddMvc().AddDataAnnotationsLocalization(options =>
+{
+  options.DataAnnotationLocalizerProvider = (type, factory) =>
+      factory.Create(typeof(Identity.Resources.ValidationMessages));
+});
+#endregion
+
 #region dbContext
 builder.Services.AddDbContext<ApplicationDBContext>(options =>
 {
@@ -266,6 +274,12 @@ if (app.Environment.IsDevelopment())
   app.UseDeveloperExceptionPage();
 }
 
+var supportedCultures = new[] { "en", "en_EN", "en_US", "de", "de_DE", "ru", "ru_RU" };
+var localizationOptions = new RequestLocalizationOptions().SetDefaultCulture(supportedCultures[0])
+    .AddSupportedCultures(supportedCultures)
+    .AddSupportedUICultures(supportedCultures);
+
+app.UseRequestLocalization(localizationOptions);
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseCors();

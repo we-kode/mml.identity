@@ -1,6 +1,6 @@
 ﻿using CryptoHelper;
-using Identity.Application.IdentityConstants;
 using Identity.Application.Contracts;
+using Identity.Application.IdentityConstants;
 using Identity.Application.Models;
 using Identity.DBContext;
 using Identity.DBContext.Models;

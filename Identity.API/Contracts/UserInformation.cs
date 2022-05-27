@@ -16,14 +16,14 @@ namespace Identity.Contracts
     /// The old password of the user. 
     /// If password should not be changed, than both <see cref="OldPassword"/> and <see cref="NewPassword"/> should be an empty string.
     /// </summary>
-    [MinLength(12)]
+    [MinLength(12, ErrorMessageResourceName = nameof(Resources.ValidationMessages.MinLength), ErrorMessageResourceType = typeof(Resources.ValidationMessages))]
     public string? OldPassword { get; set; }
 
     /// <summary>
     /// The new Password of the user.
     /// If password should not be changed, than both <see cref="OldPassword"/> and <see cref="NewPassword"/> should be an empty string.
     /// </summary>
-    [MinLength(12)]
+    [MinLength(12, ErrorMessageResourceName = nameof(Resources.ValidationMessages.MinLength), ErrorMessageResourceType = typeof(Resources.ValidationMessages))]
     public string? NewPassword { get; set; }
 
     /// <summary>
