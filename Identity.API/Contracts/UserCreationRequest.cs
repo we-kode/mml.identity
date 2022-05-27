@@ -10,13 +10,13 @@ namespace Identity.Contracts
     /// <summary>
     /// The username
     /// </summary>
-    [Required]
+    [Required(ErrorMessageResourceName = nameof(Resources.ValidationMessages.Required), ErrorMessageResourceType = typeof(Resources.ValidationMessages))]
     public string Name { get; set; }
 
     /// <summary>
     /// the password
     /// </summary>
-    [MinLength(12, ErrorMessageResourceName = "MinLength", ErrorMessageResourceType = typeof(Resources.ValidationMessages))]
+    [MinLength(12, ErrorMessageResourceName = nameof(Resources.ValidationMessages.MinLength), ErrorMessageResourceType = typeof(Resources.ValidationMessages))]
     public string? Password { get; set; }
 
     /// <summary>

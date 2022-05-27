@@ -120,4 +120,7 @@
   <data name="MinLength" xml:space="preserve">
     <value>At least {1} characters needed.</value>
   </data>
+  <data name="Required" xml:space="preserve">
+    <value>Required</value>
+  </data>
 </root>

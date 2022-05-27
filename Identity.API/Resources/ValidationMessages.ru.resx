@@ -120,4 +120,7 @@
   <data name="MinLength" xml:space="preserve">
     <value>Необходимо не менее {1} символов.</value>
   </data>
+  <data name="Required" xml:space="preserve">
+    <value>Обязательный параметр</value>
+  </data>
 </root>

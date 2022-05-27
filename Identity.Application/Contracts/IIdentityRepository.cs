@@ -1,6 +1,5 @@
 ﻿using Identity.Application.IdentityConstants;
 using Identity.Application.Models;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Identity.Application.Contracts

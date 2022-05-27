@@ -120,4 +120,7 @@
   <data name="MinLength" xml:space="preserve">
     <value>Mindestens {1} Zeichen werden erwartet.</value>
   </data>
+  <data name="Required" xml:space="preserve">
+    <value>Pflichtfeld</value>
+  </data>
 </root>

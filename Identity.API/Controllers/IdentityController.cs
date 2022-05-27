@@ -93,7 +93,8 @@ namespace Identity.Controllers
         ModelState.AddModelError(nameof(UserCreationRequest.Password), "USER_EMPTY_PASSWORD");
       }
 
-      if (!ModelState.IsValid) {
+      if (!ModelState.IsValid)
+      {
         return BadRequest(ModelState);
       }
 

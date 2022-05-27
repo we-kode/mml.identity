@@ -76,7 +76,8 @@ builder.Services.AddCors(options =>
 #endregion
 
 #region localizations
-builder.Services.AddMvc().AddDataAnnotationsLocalization(options => {
+builder.Services.AddMvc().AddDataAnnotationsLocalization(options =>
+{
   options.DataAnnotationLocalizerProvider = (type, factory) =>
       factory.Create(typeof(Identity.Resources.ValidationMessages));
 });

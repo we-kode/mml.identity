@@ -11,13 +11,13 @@ namespace Identity.Contracts
     /// <summary>
     /// The id of the client
     /// </summary>
-    [Required]
+    [Required(ErrorMessageResourceName = nameof(Resources.ValidationMessages.Required), ErrorMessageResourceType = typeof(Resources.ValidationMessages)))]
     public Guid ClientId { get; set; }
 
     /// <summary>
     /// The display name of the client
     /// </summary>
-    [Required]
+    [Required(ErrorMessageResourceName = nameof(Resources.ValidationMessages.Required), ErrorMessageResourceType = typeof(Resources.ValidationMessages)))]
     public string DisplayName { get; set; }
 
     /// <summary>
