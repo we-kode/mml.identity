@@ -11,7 +11,7 @@ namespace Identity.Contracts
     /// <summary>
     /// Public Key of the client base64 encoded
     /// </summary>
-    [Required(ErrorMessageResourceName = nameof(Resources.ValidationMessages.Required), ErrorMessageResourceType = typeof(Resources.ValidationMessages)))]
+    [Required(ErrorMessageResourceName = nameof(Resources.ValidationMessages.Required), ErrorMessageResourceType = typeof(Resources.ValidationMessages))]
     public string Base64PublicKey { get; set; }
 
     /// <summary>
