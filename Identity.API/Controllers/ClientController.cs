@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using OpenIddict.Validation.AspNetCore;
 using System;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 
@@ -47,6 +48,21 @@ namespace Identity.Controllers
     public Clients List([FromQuery] string? filter, [FromQuery] int skip = Application.IdentityConstants.List.Skip, [FromQuery] int take = Application.IdentityConstants.List.Take)
     {
       return clientRepository.ListClients(filter, skip, take);
+    }
+
+    /// <summary>
+    /// Deletes a list of existing clients.
+    /// </summary>
+    /// <param name="ids">ids of the clients to be removed.</param>
+    [HttpPost("deleteList")]
+    public IActionResult DeleteList([FromBody] IList<string> ids)
+    {
+      foreach (var id in ids)
+      {
+        clientRepository.DeleteClient(id);
+      }
+
+      return Ok();
     }
 
     /// <summary>

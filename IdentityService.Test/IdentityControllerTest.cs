@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -113,6 +114,26 @@ namespace IdentityService.Test
         Assert.Equal(HttpStatusCode.Forbidden, result.StatusCode);
         userManager.AddToRoleAsync(adminUser, Identity.Application.IdentityConstants.Roles.Admin).GetAwaiter().GetResult();
       }
+    }
+
+    [Fact]
+    public async void Test_DeleteList()
+    {
+      var serviceScope = application.Services.CreateScope();
+      var userManager = serviceScope.ServiceProvider.GetRequiredService<UserManager<IdentityUser<long>>>();
+      var user1 = new IdentityUser<long> { Id = 42, UserName = "u1" };
+      var user2 = new IdentityUser<long> { Id = 43, UserName = "u2" };
+      var user3 = new IdentityUser<long> { Id = 44, UserName = "u3" };
+      userManager.CreateAsync(user1).GetAwaiter().GetResult();
+      userManager.CreateAsync(user2).GetAwaiter().GetResult();
+      userManager.CreateAsync(user3).GetAwaiter().GetResult();
+
+      var payload = $"[ 42,43,44]";
+      var uContent = new StringContent(payload, Encoding.UTF8, "application/json");
+      var result = await client.PostAsync($"/api/v1.0/identity/user/deleteList", uContent);
+      Assert.True(result.IsSuccessStatusCode);
+
+      Assert.False(userManager.Users.Any(u => u.Id == 42 || u.Id == 43 || u.Id == 44));
     }
 
     [Theory]

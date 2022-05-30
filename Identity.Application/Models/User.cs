@@ -26,18 +26,25 @@
     public bool IsConfirmed { get; }
 
     /// <summary>
+    /// Determines if user can be deleted
+    /// </summary>
+    public bool IsDeleteable { get; }
+
+    /// <summary>
     /// Creates an instance of one user.
     /// </summary>
     /// <param name="id">Id of the user</param>
     /// <param name="name">The username</param>
     /// <param name="isAdmin">Determines if this user is an admin</param>
     /// <param name="isConfirmed">Determines if user has confirmed account</param>
-    public User(long id, string name, bool isAdmin, bool isConfirmed)
+    /// <param name="isDeletable">Determines if user can be deleted</param>
+    public User(long id, string name, bool isAdmin, bool isConfirmed, bool isDeletable = true)
     {
       Id = id;
       Name = name;
       IsAdmin = isAdmin;
       IsConfirmed = isConfirmed;
+      IsDeleteable = isDeletable;
     }
   }
 }

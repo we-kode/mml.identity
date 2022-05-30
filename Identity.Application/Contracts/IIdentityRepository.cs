@@ -31,11 +31,12 @@ namespace Identity.Application.Contracts
     /// <summary>
     /// Loads list of users.
     /// </summary>
+    /// <param name="actualUserId">The userid of the actual user</param>
     /// <param name="filter">Users will be filtered by given string</param>
     /// <param name="skip">Offset of the list</param>
     /// <param name="take">Size of chunk to be loaded</param>
     /// <returns><see cref="Users"/></returns>
-    Users ListUsers(string? filter, int skip = List.Skip, int take = List.Take);
+    Users ListUsers(long actualUserId, string? filter, int skip = List.Skip, int take = List.Take);
 
     /// <summary>
     /// Removes one user

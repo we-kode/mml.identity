@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Identity.Controllers
@@ -36,9 +37,10 @@ namespace Identity.Controllers
     /// <param name="take">Size of chunk to be loaded</param>
     /// <returns><see cref="Users"/></returns>
     [HttpGet("list")]
-    public Users List([FromQuery] string? filter, [FromQuery] int skip = Application.IdentityConstants.List.Skip, [FromQuery] int take = Application.IdentityConstants.List.Take)
+    public ActionResult<Users> List([FromQuery] string? filter, [FromQuery] int skip = Application.IdentityConstants.List.Skip, [FromQuery] int take = Application.IdentityConstants.List.Take)
     {
-      return _repository.ListUsers(filter, skip, take);
+      var id = HttpContext.User.GetClaim(OpenIddictConstants.Claims.Subject);
+      return _repository.ListUsers(long.Parse(id!), filter, skip, take);
     }
 
     /// <summary>
@@ -71,6 +73,28 @@ namespace Identity.Controllers
         return NotFound();
       }
       await _service.DeleteUser(long.Parse(actualUserId), id).ConfigureAwait(false);
+      return Ok();
+    }
+
+    /// <summary>
+    /// Deletes a list of existing users.
+    /// </summary>
+    /// <param name="ids">ids of the users to be removed.</param>
+    /// <response code="404">If user does not exists</response>
+    [HttpPost("deleteList")]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteList([FromBody] IList<long> ids)
+    {
+      var actualUserId = HttpContext.User.GetClaim(OpenIddictConstants.Claims.Subject);
+      if (string.IsNullOrEmpty(actualUserId))
+      {
+        return NotFound();
+      }
+      foreach (var id in ids)
+      {
+        await _service.DeleteUser(long.Parse(actualUserId), id).ConfigureAwait(false);
+      }
+
       return Ok();
     }
 

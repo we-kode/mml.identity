@@ -44,14 +44,14 @@ namespace Identity.Infrastructure
       return result != null;
     }
 
-    public Users ListUsers(string? filter, int skip = List.Skip, int take = List.Take)
+    public Users ListUsers(long actualUserId, string? filter, int skip = List.Skip, int take = List.Take)
     {
       var query = _userManager.Users
           .Where(user => string.IsNullOrEmpty(filter) || user.UserName.Contains(filter, StringComparison.OrdinalIgnoreCase))
           .OrderBy(user => user.UserName);
 
       var count = query.Count();
-      var items = query.Select(user => new User(user.Id, user.UserName, _userManager.IsInRoleAsync(user, ADMIN_ROLE).Result, user.EmailConfirmed))
+      var items = query.Select(user => new User(user.Id, user.UserName, _userManager.IsInRoleAsync(user, ADMIN_ROLE).Result, user.EmailConfirmed, user.Id != actualUserId))
           .Skip(skip)
           .Take(take)
           .ToList();
