@@ -36,11 +36,17 @@ namespace Identity.Controllers
     /// <param name="skip">Offset of the list</param>
     /// <param name="take">Size of chunk to be loaded</param>
     /// <returns><see cref="Users"/></returns>
+    /// <response code="404">If user does not exists</response>
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [HttpGet("list")]
     public ActionResult<Users> List([FromQuery] string? filter, [FromQuery] int skip = Application.IdentityConstants.List.Skip, [FromQuery] int take = Application.IdentityConstants.List.Take)
     {
       var id = HttpContext.User.GetClaim(OpenIddictConstants.Claims.Subject);
-      return _repository.ListUsers(long.Parse(id!), filter, skip, take);
+      if (string.IsNullOrEmpty(id))
+      {
+        return NotFound();
+      }
+      return _repository.ListUsers(long.Parse(id), filter, skip, take);
     }
 
     /// <summary>
