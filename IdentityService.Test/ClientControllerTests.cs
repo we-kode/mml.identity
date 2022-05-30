@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -113,6 +114,24 @@ namespace IdentityService.Test
       result.EnsureSuccessStatusCode();
 
       Assert.Equal(0, clientRepository.ListClients("clientToDelete").TotalCount);
+    }
+
+    [Fact]
+    public async void Test_DeleteList()
+    {
+      using var scope = application.Services.CreateScope();
+      var scopedServices = scope.ServiceProvider;
+      var clientRepository = scopedServices.GetRequiredService<IClientRepository>();
+      await clientRepository.CreateClient("clientToDelete", "123", "test").ConfigureAwait(false);
+      await clientRepository.CreateClient("clientToDelete2", "123", "test").ConfigureAwait(false);
+      await clientRepository.CreateClient("clientToDelete3", "123", "test").ConfigureAwait(false);
+
+      var payload = $"[ \"clientToDelete\",\"clientToDelete2\",\"clientToDelete3\"]";
+      var uContent = new StringContent(payload, Encoding.UTF8, "application/json");
+      var result = await client.PostAsync($"/api/v1.0/identity/client/deleteList", uContent);
+      Assert.True(result.IsSuccessStatusCode);
+
+      Assert.DoesNotContain(clientRepository.ListClients().Items, u => u.ClientId == "clientToDelete" || u.ClientId == "clientToDelete2" || u.ClientId == "clientToDelete3");
     }
 
     [Fact]
