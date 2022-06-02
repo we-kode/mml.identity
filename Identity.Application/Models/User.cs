@@ -28,7 +28,7 @@
     /// <summary>
     /// Determines if user can be deleted
     /// </summary>
-    public bool IsDeleteable { get; }
+    public bool IsDeletable { get; }
 
     /// <summary>
     /// Creates an instance of one user.
@@ -44,7 +44,7 @@
       Name = name;
       IsAdmin = isAdmin;
       IsConfirmed = isConfirmed;
-      IsDeleteable = isDeletable;
+      IsDeletable = isDeletable;
     }
   }
 }
