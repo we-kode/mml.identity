@@ -30,33 +30,6 @@ namespace IdentityService.Test
     }
 
     [Theory]
-    [InlineData(null)]
-    [InlineData("test@user.test", 1)]
-    [InlineData("TEST@USER.test", 1)]
-    [InlineData("rrrrrrrrrrrrrrrrrrrrrrr", 0)]
-    public async void Test_List(string? filter, int count = -1)
-    {
-      var filterString = string.IsNullOrEmpty(filter) ? "" : $"?filter={filter}";
-      var result = await client.GetAsync($"/api/v1.0/identity/user/list{filterString}");
-      Assert.Equal(HttpStatusCode.OK, result.StatusCode);
-      var users = JsonConvert.DeserializeObject<Users>(await result.Content.ReadAsStringAsync());
-      Assert.True(count == -1 ? users.TotalCount >= 0 : users.TotalCount == count);
-      if (users.TotalCount > 0)
-      {
-        Assert.Contains(users.Items, user => user.Name == TestApplication.UserName);
-      }
-
-      result = await client.GetAsync($"/api/v1.0/identity/user/list?skip=0&take=0");
-      Assert.Equal(HttpStatusCode.OK, result.StatusCode);
-      users = JsonConvert.DeserializeObject<Users>(await result.Content.ReadAsStringAsync());
-      Assert.Equal(1, users.TotalCount);
-
-      client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "xyz");
-      result = await client.GetAsync($"/api/v1.0/identity/user/list{filterString}");
-      Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
-    }
-
-    [Theory]
     [InlineData("test", null, false, HttpStatusCode.BadRequest)]
     [InlineData("test@newuser.test", "123456789012", false, HttpStatusCode.Created)]
     [InlineData("test@newuser.test", "123456789012", true, HttpStatusCode.Unauthorized)]

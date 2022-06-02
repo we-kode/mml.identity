@@ -1,10 +1,12 @@
 ﻿using Identity.Application.Contracts;
 using Identity.Application.IdentityConstants;
 using Identity.Application.Models;
+using Identity.DBContext;
 using Microsoft.AspNetCore.Identity;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Infrastructure
 {
@@ -12,10 +14,12 @@ namespace Identity.Infrastructure
   {
     private readonly UserManager<IdentityUser<long>> _userManager;
     private const string ADMIN_ROLE = Roles.Admin;
+    private readonly Func<ApplicationDBContext> _contextFactory;
 
-    public SqlIdentityRepository(UserManager<IdentityUser<long>> userManager)
+    public SqlIdentityRepository(UserManager<IdentityUser<long>> userManager, Func<ApplicationDBContext> contextFactory)
     {
       _userManager = userManager;
+      _contextFactory = contextFactory;
     }
 
     public async Task<User> CreateNewUser(string userName, string initPassword)
@@ -46,12 +50,20 @@ namespace Identity.Infrastructure
 
     public Users ListUsers(long actualUserId, string? filter, int skip = List.Skip, int take = List.Take)
     {
-      var query = _userManager.Users
-          .Where(user => string.IsNullOrEmpty(filter) || user.UserName.Contains(filter, StringComparison.OrdinalIgnoreCase))
+      using var context = _contextFactory();
+      var adminRoleId = context.Roles.Where(role => role.Name == ADMIN_ROLE).FirstOrDefault()?.Id ?? 0;
+      var query = context.Users
+          .Where(user => string.IsNullOrEmpty(filter) || EF.Functions.ILike(user.UserName, $"%{filter}%"))
           .OrderBy(user => user.UserName);
 
       var count = query.Count();
-      var items = query.Select(user => new User(user.Id, user.UserName, _userManager.IsInRoleAsync(user, ADMIN_ROLE).Result, user.EmailConfirmed, user.Id != actualUserId))
+      var items = query.Select(user => new User(
+        user.Id,
+        user.UserName,
+        context.UserRoles.Where(userRole => userRole.UserId == user.Id && userRole.RoleId == adminRoleId).Any(),
+        user.EmailConfirmed,
+        user.Id != actualUserId
+      ))
           .Skip(skip)
           .Take(take)
           .ToList();

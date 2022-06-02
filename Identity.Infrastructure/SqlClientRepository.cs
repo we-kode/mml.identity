@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Infrastructure
 {
@@ -27,9 +28,9 @@ namespace Identity.Infrastructure
     {
       using var context = _contextFactory();
       var query = context.Applications
-        .Where(app => !string.IsNullOrEmpty(app.Permissions) && !app.Permissions.Contains(Scopes.Upload))
-        .Where(app => app.Permissions!.Contains(OpenIddictConstants.GrantTypes.ClientCredentials))
-        .Where(app => string.IsNullOrEmpty(filter) || (app.DisplayName ?? "").Contains(filter, StringComparison.OrdinalIgnoreCase))
+        .Where(app => !string.IsNullOrEmpty(app.Permissions) && !EF.Functions.Like(app.Permissions, $"%{Scopes.Upload}%"))
+        .Where(app => EF.Functions.Like(app.Permissions!, $"%{OpenIddictConstants.GrantTypes.ClientCredentials}%"))
+        .Where(app => string.IsNullOrEmpty(filter) || EF.Functions.ILike(app.DisplayName ?? "", $"%{filter}%"))
         .OrderBy(app => app.DisplayName);
 
       var count = query.Count();
@@ -95,7 +96,7 @@ namespace Identity.Infrastructure
     public bool AdminAppExists()
     {
       using var context = _contextFactory();
-      return context.Applications.Any(app => !string.IsNullOrEmpty(app.Permissions) && app.Permissions.Contains(OpenIddictConstants.GrantTypes.Password));
+      return context.Applications.Any(app => !string.IsNullOrEmpty(app.Permissions) && EF.Functions.Like(app.Permissions ?? "", $"%{OpenIddictConstants.GrantTypes.Password}%"));
     }
 
     public async Task<Guid> CreateAdminApp()
@@ -145,8 +146,7 @@ namespace Identity.Infrastructure
     {
       using var context = _contextFactory();
       return context.Applications
-        .AsEnumerable()
-        .Where(app => (app.Permissions ?? "").Contains(Scopes.Upload, StringComparison.OrdinalIgnoreCase))
+        .Where(app => EF.Functions.ILike(app.Permissions ?? "", $"%{Scopes.Upload}%"))
         .Select(app => Guid.Parse(app.ClientId!))
         .ToList();
     }
