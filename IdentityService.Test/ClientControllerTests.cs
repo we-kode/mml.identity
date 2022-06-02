@@ -72,35 +72,6 @@ namespace IdentityService.Test
     }
 
     [Fact]
-    public async Task Test_ListClients()
-    {
-      using var scope = application.Services.CreateScope();
-      var scopedServices = scope.ServiceProvider;
-      var clientRepository = scopedServices.GetRequiredService<IClientRepository>();
-      await clientRepository.CreateClient("abc", "123", "test").ConfigureAwait(false);
-      clientRepository.Update(new Client("abc", "abc"));
-      await clientRepository.CreateClient("def", "123", "test").ConfigureAwait(false);
-      clientRepository.Update(new Client("def", "def"));
-      await clientRepository.CreateClient("ghi", "123", "test").ConfigureAwait(false);
-      clientRepository.Update(new Client("ghi", "ghi"));
-
-      var result = await client.GetAsync("/api/v1.0/identity/client/list");
-      result.EnsureSuccessStatusCode();
-      var clients = JsonConvert.DeserializeObject<Clients>(await result.Content.ReadAsStringAsync());
-      Assert.Equal(3, clients.TotalCount);
-
-      result = await client.GetAsync("/api/v1.0/identity/client/list?filter=d");
-      clients = JsonConvert.DeserializeObject<Clients>(await result.Content.ReadAsStringAsync());
-      Assert.Equal(1, clients.TotalCount);
-      Assert.Contains(clients.Items, client => client.ClientId == "def");
-
-      result = await client.GetAsync("/api/v1.0/identity/client/list?skip=0&take=1");
-      result.EnsureSuccessStatusCode();
-      clients = JsonConvert.DeserializeObject<Clients>(await result.Content.ReadAsStringAsync());
-      Assert.Equal(3, clients.TotalCount);
-    }
-
-    [Fact]
     public async Task Test_DeleteClients()
     {
       var result = await client.DeleteAsync($"/api/v1.0/identity/client/abc");
