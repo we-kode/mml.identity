@@ -275,7 +275,8 @@ if (app.Environment.IsDevelopment())
 }
 
 var supportedCultures = new[] { "en", "en_US", "de", "de_DE", "ru", "ru_RU" };
-var localizationOptions = new RequestLocalizationOptions().SetDefaultCulture(supportedCultures[0])
+var localizationOptions = new RequestLocalizationOptions()
+    .SetDefaultCulture(supportedCultures[0])
     .AddSupportedCultures(supportedCultures)
     .AddSupportedUICultures(supportedCultures);
 
