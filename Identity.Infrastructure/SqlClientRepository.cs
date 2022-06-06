@@ -156,5 +156,12 @@ namespace Identity.Infrastructure
       using var context = _contextFactory();
       return context.Applications.Any(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == clientId);
     }
+
+    public Client GetClient(string id)
+    {
+      using var context = _contextFactory();
+      var client = context.Applications.First(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == id);
+      return new Client(client.ClientId ?? "", client.DisplayName ?? "");
+    }
   }
 }

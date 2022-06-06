@@ -75,5 +75,12 @@ namespace Identity.Application.Contracts
     /// </summary>
     /// <returns><see cref="Guid"/> of the client id.</returns>
     Task<Guid> CreateAdminApp();
+
+    /// <summary>
+    /// Returns a client by id.
+    /// </summary>
+    /// <param name="id">The id of the client.</param>
+    /// <returns><see cref="Client"/></returns>
+    Client GetClient(string id);
   }
 }
