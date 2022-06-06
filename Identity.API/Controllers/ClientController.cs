@@ -66,14 +66,32 @@ namespace Identity.Controllers
     }
 
     /// <summary>
-    /// Deletes one existing user.
+    /// Deletes one existing client.
     /// </summary>
-    /// <param name="id">id of the user to be removed.</param>
+    /// <param name="id">id of the client to be removed.</param>
     [HttpDelete("{id}")]
     public IActionResult Delete(string id)
     {
       clientRepository.DeleteClient(id);
       return Ok();
+    }
+
+    /// <summary>
+    /// Loads one existing client.
+    /// </summary>
+    /// <param name="id">id of the client to be loaded.</param>
+    /// <returns><see cref="User"/> of given id</returns>
+    /// <response code="404">If client does not exist.</response>
+    [HttpGet("{id:Guid}")]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public ActionResult<Client> Get(Guid id)
+    {
+      if (!clientRepository.ClientExists(id.ToString()))
+      {
+        return NotFound();
+      }
+
+      return clientRepository.GetClient(id.ToString());
     }
 
     /// <summary>
