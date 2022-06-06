@@ -10,8 +10,9 @@ namespace Identity.Application.Contracts
     /// Determines if one user with given email exists
     /// </summary>
     /// <param name="email">Email of user to be checked</param>
+    /// <param name="userId">Id of user to ignore</param>
     /// <returns>True, if user with given email already exists</returns>
-    Task<bool> UserExists(string email);
+    Task<bool> UserExists(string email, long? userId = null);
 
     /// <summary>
     /// Determines if one user with given user id

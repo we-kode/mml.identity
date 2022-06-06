@@ -42,10 +42,10 @@ namespace Identity.Infrastructure
       return new User(login.Id, userName, true, login.EmailConfirmed);
     }
 
-    public async Task<bool> UserExists(string userName)
+    public async Task<bool> UserExists(string userName, long? userId)
     {
       var result = await _userManager.FindByNameAsync(userName).ConfigureAwait(false);
-      return result != null;
+      return result != null && (!userId.HasValue || result.Id != userId.Value);
     }
 
     public Users ListUsers(long actualUserId, string? filter, int skip = List.Skip, int take = List.Take)

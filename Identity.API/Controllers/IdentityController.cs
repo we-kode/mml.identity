@@ -4,9 +4,11 @@ using Identity.Application.IdentityConstants;
 using Identity.Application.Models;
 using Identity.Contracts;
 using Identity.Filters;
+using Identity.Resources;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
 using System.Collections.Generic;
@@ -22,11 +24,16 @@ namespace Identity.Controllers
   {
     private ApplicationService _service;
     private IIdentityRepository _repository;
+    private IStringLocalizer<ValidationMessages> _localizer;
 
-    public IdentityController(ApplicationService service, IIdentityRepository repository)
+    public IdentityController(
+      ApplicationService service,
+      IIdentityRepository repository,
+      IStringLocalizer<ValidationMessages> localizer)
     {
       _service = service;
       _repository = repository;
+      _localizer = localizer;
     }
 
     /// <summary>
@@ -115,17 +122,23 @@ namespace Identity.Controllers
     {
       if (await _repository.UserExists(request.Name).ConfigureAwait(false))
       {
-        ModelState.AddModelError(nameof(UserCreationRequest.Name), "USER_UNIQUE_CONSTRAINT_FAILED");
+        ModelState.AddModelError(
+          nameof(UserCreationRequest.Name),
+          _localizer[nameof(ValidationMessages.Unique)]
+        );
       }
 
       if (string.IsNullOrEmpty(request.Password))
       {
-        ModelState.AddModelError(nameof(UserCreationRequest.Password), "USER_EMPTY_PASSWORD");
+        ModelState.AddModelError(
+          nameof(UserCreationRequest.Password),
+          _localizer[nameof(ValidationMessages.Empty)]
+        );
       }
 
       if (!ModelState.IsValid)
       {
-        return BadRequest(ModelState);
+        return ValidationProblem();
       }
 
       var user = await _service.Create(request.Name, request.Password!).ConfigureAwait(false);
@@ -141,6 +154,19 @@ namespace Identity.Controllers
     [ServiceFilter(typeof(UserExistsFilter))]
     public async Task<IActionResult> Post(long id, [FromBody] UserCreationRequest request)
     {
+      if (await _repository.UserExists(request.Name, id).ConfigureAwait(false))
+      {
+        ModelState.AddModelError(
+          nameof(UserCreationRequest.Name),
+          _localizer[nameof(ValidationMessages.Unique)]
+        );
+      }
+
+      if (!ModelState.IsValid)
+      {
+        return ValidationProblem();
+      }
+
       await _service.UpdateUser(id, request.Name, request.Password).ConfigureAwait(false);
       return Ok();
     }
