@@ -10,11 +10,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace Identity.Controllers
 {
@@ -110,6 +112,31 @@ namespace Identity.Controllers
 
       clientRepository.Update(_mapper.Map<Client>(request));
       return Ok();
+    }
+
+    [HttpGet()]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Client)]
+    public IActionResult ClientRegistered()
+    {
+      var clientIdClaim = HttpContext.User.GetClaim(Claims.Subject) ?? "";
+
+      if (!clientRepository.ClientExists(clientIdClaim)) {
+        return NotFound();
+      }
+
+      return Ok();
+    }
+
+    [HttpPost("removeRegistration")]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Client)]
+    public IActionResult RemoveRegistration()
+    {
+      var clientIdClaim = HttpContext.User.GetClaim(Claims.Subject) ?? "";
+
+      return new JsonResult(new {
+        Registered = clientRepository.ClientExists(clientIdClaim)
+      });
     }
 
     /// <summary>
