@@ -114,29 +114,30 @@ namespace Identity.Controllers
       return Ok();
     }
 
+    /// <summary>
+    /// Returns whether the current authenticated client is a registered client.
+    /// </summary>
     [HttpGet()]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Client)]
     public IActionResult ClientRegistered()
     {
-      var clientIdClaim = HttpContext.User.GetClaim(Claims.Subject) ?? "";
+      var clientId = HttpContext.User.GetClaim(Claims.Subject) ?? "";
 
-      if (!clientRepository.ClientExists(clientIdClaim)) {
-        return NotFound();
-      }
-
-      return Ok();
+      return new JsonResult(new {
+        Registered = clientRepository.ClientExists(clientId)
+      });
     }
 
+    /// <summary>
+    /// Deletes the registration of the current authenticated client.
+    /// </summary>
     [HttpPost("removeRegistration")]
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Client)]
     public IActionResult RemoveRegistration()
     {
-      var clientIdClaim = HttpContext.User.GetClaim(Claims.Subject) ?? "";
-
-      return new JsonResult(new {
-        Registered = clientRepository.ClientExists(clientIdClaim)
-      });
+      var clientId = HttpContext.User.GetClaim(Claims.Subject) ?? "";
+      clientRepository.DeleteClient(clientId);
+      return Ok();
     }
 
     /// <summary>
