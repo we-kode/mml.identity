@@ -10,11 +10,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace Identity.Controllers
 {
@@ -109,6 +111,32 @@ namespace Identity.Controllers
       }
 
       clientRepository.Update(_mapper.Map<Client>(request));
+      return Ok();
+    }
+
+    /// <summary>
+    /// Returns whether the current authenticated client is a registered client.
+    /// </summary>
+    [HttpGet()]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Client)]
+    public IActionResult ClientRegistered()
+    {
+      var clientId = HttpContext.User.GetClaim(Claims.Subject) ?? "";
+
+      return new JsonResult(new {
+        Registered = clientRepository.ClientExists(clientId)
+      });
+    }
+
+    /// <summary>
+    /// Deletes the registration of the current authenticated client.
+    /// </summary>
+    [HttpPost("removeRegistration")]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Client)]
+    public IActionResult RemoveRegistration()
+    {
+      var clientId = HttpContext.User.GetClaim(Claims.Subject) ?? "";
+      clientRepository.DeleteClient(clientId);
       return Ok();
     }
 
