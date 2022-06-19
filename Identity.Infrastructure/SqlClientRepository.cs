@@ -56,7 +56,10 @@ namespace Identity.Infrastructure
         return;
       }
 
+      context.Tokens.RemoveRange(context.Tokens.Where(token => token.Application == client));
+      context.Authorizations.RemoveRange(context.Authorizations.Where(authorization => authorization.Application == client));
       context.Applications.Remove(client);
+
       context.SaveChanges();
     }
 

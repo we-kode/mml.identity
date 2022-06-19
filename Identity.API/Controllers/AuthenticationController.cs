@@ -135,7 +135,7 @@ namespace Identity.Controllers
          * signature must be made over the following string to be marked as valid
          * { "clientId" : "<id of client>", "clientSecret" : "<secret of client>", "grant_type" : "client_credentials" }
          */
-        var content = $"{{ \"clientId\" : \"{request.ClientId}\", \"clientSecret\" : \"{request.ClientSecret}\", \"grant_type\" : \"client_credentials\" }}";
+        var content = $"{{ \"client_id\" : \"{request.ClientId}\", \"client_secret\" : \"{request.ClientSecret}\", \"grant_type\" : \"client_credentials\" }}";
         var isValidSignature = rsa!.VerifyData(Encoding.UTF8.GetBytes(content), Convert.FromBase64String(request.CodeChallenge!), HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1);
         if (!isValidSignature)
         {

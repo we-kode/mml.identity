@@ -127,6 +127,12 @@ builder.Services.AddAuthorization(option =>
     policy.RequireAuthenticatedUser();
     policy.RequireClaim(OpenIddictConstants.Claims.Role, Identity.Application.IdentityConstants.Roles.Admin);
   });
+  option.AddPolicy(Identity.Application.IdentityConstants.Roles.Client, policy =>
+  {
+    policy.AddAuthenticationSchemes(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
+    policy.RequireAuthenticatedUser();
+    policy.RequireClaim(OpenIddictConstants.Claims.Role, Identity.Application.IdentityConstants.Roles.Client);
+  });
 });
 builder.Services.AddOpenIddict()
     .AddCore(options =>
