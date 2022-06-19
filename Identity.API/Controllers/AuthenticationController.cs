@@ -16,6 +16,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using static OpenIddict.Abstractions.OpenIddictConstants;
+using System.Text.Json;
 
 namespace Identity.Controllers
 {
@@ -135,7 +136,11 @@ namespace Identity.Controllers
          * signature must be made over the following string to be marked as valid
          * { "clientId" : "<id of client>", "clientSecret" : "<secret of client>", "grant_type" : "client_credentials" }
          */
-        var content = $"{{ \"client_id\" : \"{request.ClientId}\", \"client_secret\" : \"{request.ClientSecret}\", \"grant_type\" : \"client_credentials\" }}";
+        var content = JsonSerializer.Serialize(new {
+          grant_type = "client_credentials",
+          client_id = request.ClientId,
+          client_secret = request.ClientSecret,
+        });
         var isValidSignature = rsa!.VerifyData(Encoding.UTF8.GetBytes(content), Convert.FromBase64String(request.CodeChallenge!), HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1);
         if (!isValidSignature)
         {
