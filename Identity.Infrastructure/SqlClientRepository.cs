@@ -91,7 +91,7 @@ namespace Identity.Infrastructure
           OpenIddictConstants.Permissions.GrantTypes.ClientCredentials
         }),
         Type = OpenIddictConstants.ClientTypes.Confidential,
-        DisplayName = $"device-{DateTime.UtcNow:yyyy-MM-ddTHH:mm:SS}"
+        DisplayName = $"device-{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss}"
       };
       context.Applications.Add(client);
       await context.SaveChangesAsync().ConfigureAwait(false);
