@@ -108,7 +108,7 @@ namespace Identity.Controllers
       if (request.IsClientCredentialsGrantType())
       {
 
-        var client = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        var client = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, null, Claims.Role);
         client.AddClaim(Claims.Subject, request.ClientId!, Destinations.AccessToken);
 
         if (request.GetScopes().Contains(Application.IdentityConstants.Scopes.Upload))

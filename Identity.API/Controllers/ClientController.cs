@@ -23,7 +23,6 @@ namespace Identity.Controllers
   [ApiController]
   [ApiVersion("1.0")]
   [Route("api/v{version:apiVersion}/identity/[controller]")]
-  [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
   public class ClientController : ControllerBase
   {
     private readonly IClientRepository clientRepository;
@@ -47,6 +46,7 @@ namespace Identity.Controllers
     /// <param name="take">Size of chunk to be loaded</param>
     /// <returns><see cref="Clients"/></returns>
     [HttpGet("list")]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
     public Clients List([FromQuery] string? filter, [FromQuery] int skip = Application.IdentityConstants.List.Skip, [FromQuery] int take = Application.IdentityConstants.List.Take)
     {
       return clientRepository.ListClients(filter, skip, take);
@@ -57,6 +57,7 @@ namespace Identity.Controllers
     /// </summary>
     /// <param name="ids">ids of the clients to be removed.</param>
     [HttpPost("deleteList")]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
     public IActionResult DeleteList([FromBody] IList<string> ids)
     {
       foreach (var id in ids)
@@ -72,6 +73,7 @@ namespace Identity.Controllers
     /// </summary>
     /// <param name="id">id of the client to be removed.</param>
     [HttpDelete("{id}")]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
     public IActionResult Delete(string id)
     {
       clientRepository.DeleteClient(id);
@@ -86,6 +88,7 @@ namespace Identity.Controllers
     /// <response code="404">If client does not exist.</response>
     [HttpGet("{id:Guid}")]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
     public ActionResult<Client> Get(Guid id)
     {
       if (!clientRepository.ClientExists(id.ToString()))
@@ -103,6 +106,7 @@ namespace Identity.Controllers
     /// <response code="404">If user does not exists.</response>
     [HttpPost()]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
     public IActionResult Post([FromBody] ClientUpdateRequest request)
     {
       if (!clientRepository.ClientExists(request.ClientId.ToString()))

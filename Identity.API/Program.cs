@@ -130,7 +130,6 @@ builder.Services.AddAuthorization(option =>
   option.AddPolicy(Identity.Application.IdentityConstants.Roles.Client, policy =>
   {
     policy.AddAuthenticationSchemes(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
-    policy.RequireAuthenticatedUser();
     policy.RequireClaim(OpenIddictConstants.Claims.Role, Identity.Application.IdentityConstants.Roles.Client);
   });
 });
