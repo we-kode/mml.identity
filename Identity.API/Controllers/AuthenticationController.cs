@@ -16,7 +16,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using static OpenIddict.Abstractions.OpenIddictConstants;
-using System.Text.Json;
 
 namespace Identity.Controllers
 {

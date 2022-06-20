@@ -197,11 +197,7 @@ namespace IdentityService.Test
       await clientRepository.CreateClient("testClient2", "testSecret2", Convert.ToBase64String(pubKey)).ConfigureAwait(false);
 
       // auth valid signature
-      var signatureString = JsonConvert.SerializeObject(new {
-        grant_type = "client_credentials",
-        client_id = "testClient2",
-        client_secret = "testSecret2",
-      });
+      var signatureString = "{\"grant_type\":\"client_credentials\",\"client_id\":\"testClient2\",\"client_secret\":\"testSecret2\"}";
       payload = new List<KeyValuePair<string, string>>();
       payload.Add(new KeyValuePair<string, string>("grant_type", "client_credentials"));
       payload.Add(new KeyValuePair<string, string>("client_id", "testClient2"));
