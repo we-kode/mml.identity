@@ -14,6 +14,10 @@ namespace Identity.DBContext
 
     public DbSet<OpenIddictClientApplication> Applications => Set<OpenIddictClientApplication>();
 
+    public DbSet<OpenIddictClientAuthorization> Authorizations => Set<OpenIddictClientAuthorization>();
+
+    public DbSet<OpenIddictClientToken> Tokens => Set<OpenIddictClientToken>();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) => optionsBuilder.UseSnakeCaseNamingConvention();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

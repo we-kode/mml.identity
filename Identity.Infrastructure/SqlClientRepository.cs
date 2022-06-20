@@ -56,7 +56,10 @@ namespace Identity.Infrastructure
         return;
       }
 
+      context.Tokens.RemoveRange(context.Tokens.Where(token => token.Application == client));
+      context.Authorizations.RemoveRange(context.Authorizations.Where(authorization => authorization.Application == client));
       context.Applications.Remove(client);
+
       context.SaveChanges();
     }
 
@@ -88,7 +91,7 @@ namespace Identity.Infrastructure
           OpenIddictConstants.Permissions.GrantTypes.ClientCredentials
         }),
         Type = OpenIddictConstants.ClientTypes.Confidential,
-        DisplayName = $"device-{DateTime.UtcNow:yyyy-MM-ddTHH:mm:SS}"
+        DisplayName = $"device-{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss}"
       };
       context.Applications.Add(client);
       await context.SaveChangesAsync().ConfigureAwait(false);

@@ -47,6 +47,7 @@ namespace Identity.Application
         return;
       }
 
+      await RevokeTokens(userId).ConfigureAwait(false);
       await _identityRepository.Delete(userId).ConfigureAwait(false);
     }
 

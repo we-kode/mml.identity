@@ -107,7 +107,7 @@ namespace Identity.Controllers
       if (request.IsClientCredentialsGrantType())
       {
 
-        var client = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        var client = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, null, Claims.Role);
         client.AddClaim(Claims.Subject, request.ClientId!, Destinations.AccessToken);
 
         if (request.GetScopes().Contains(Application.IdentityConstants.Scopes.Upload))
@@ -135,7 +135,7 @@ namespace Identity.Controllers
          * signature must be made over the following string to be marked as valid
          * { "clientId" : "<id of client>", "clientSecret" : "<secret of client>", "grant_type" : "client_credentials" }
          */
-        var content = $"{{ \"clientId\" : \"{request.ClientId}\", \"clientSecret\" : \"{request.ClientSecret}\", \"grant_type\" : \"client_credentials\" }}";
+        var content = $"{{\"grant_type\":\"client_credentials\",\"client_id\":\"{request.ClientId}\",\"client_secret\":\"{request.ClientSecret}\"}}";
         var isValidSignature = rsa!.VerifyData(Encoding.UTF8.GetBytes(content), Convert.FromBase64String(request.CodeChallenge!), HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1);
         if (!isValidSignature)
         {
