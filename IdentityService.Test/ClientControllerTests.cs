@@ -55,7 +55,7 @@ namespace IdentityService.Test
     {
       // update existing client
       var clientId = Guid.NewGuid();
-      var payload = $"{{\"clientId\": \"{clientId}\", \"displayName\": \"abc\"}}";
+      var payload = $"{{\"clientId\": \"{clientId}\", \"displayName\": \"abc\", \"device\": \"apple\"}}";
       var content = new StringContent(payload, Encoding.UTF8, "application/json");
       var result = await client.PostAsync("/api/v1.0/identity/client", content);
       Assert.Equal(HttpStatusCode.NotFound, result.StatusCode);
@@ -63,7 +63,7 @@ namespace IdentityService.Test
       using var scope = application.Services.CreateScope();
       var scopedServices = scope.ServiceProvider;
       var clientRepository = scopedServices.GetRequiredService<IClientRepository>();
-      await clientRepository.CreateClient(clientId.ToString(), "123", "test").ConfigureAwait(false);
+      await clientRepository.CreateClient(clientId.ToString(), "123", "test", "ads", "iphone").ConfigureAwait(false);
 
       result = await client.PostAsync("/api/v1.0/identity/client", content);
       Assert.Equal(HttpStatusCode.OK, result.StatusCode);
@@ -79,7 +79,7 @@ namespace IdentityService.Test
       using var scope = application.Services.CreateScope();
       var scopedServices = scope.ServiceProvider;
       var clientRepository = scopedServices.GetRequiredService<IClientRepository>();
-      await clientRepository.CreateClient("clientToDelete", "123", "test").ConfigureAwait(false);
+      await clientRepository.CreateClient("clientToDelete", "123", "test", "ads", "apple").ConfigureAwait(false);
       result = await client.DeleteAsync($"/api/v1.0/identity/client/clientToDelete");
       result.EnsureSuccessStatusCode();
 
@@ -92,9 +92,9 @@ namespace IdentityService.Test
       using var scope = application.Services.CreateScope();
       var scopedServices = scope.ServiceProvider;
       var clientRepository = scopedServices.GetRequiredService<IClientRepository>();
-      await clientRepository.CreateClient("clientToDelete", "123", "test").ConfigureAwait(false);
-      await clientRepository.CreateClient("clientToDelete2", "123", "test").ConfigureAwait(false);
-      await clientRepository.CreateClient("clientToDelete3", "123", "test").ConfigureAwait(false);
+      await clientRepository.CreateClient("clientToDelete", "123", "test", "ads", "apple").ConfigureAwait(false);
+      await clientRepository.CreateClient("clientToDelete2", "123", "test", "ads", "apple").ConfigureAwait(false);
+      await clientRepository.CreateClient("clientToDelete3", "123", "test", "ads", "apple").ConfigureAwait(false);
 
       var payload = $"[ \"clientToDelete\",\"clientToDelete2\",\"clientToDelete3\"]";
       var uContent = new StringContent(payload, Encoding.UTF8, "application/json");
@@ -108,7 +108,7 @@ namespace IdentityService.Test
     public async void Test_RegisterClient()
     {
       var someRandomString = Convert.ToBase64String(Encoding.UTF8.GetBytes("somerandomstring"));
-      var payload = $"{{\"base64PublicKey\": \"{someRandomString}\"}}";
+      var payload = $"{{\"base64PublicKey\": \"{someRandomString}\", \"displayName\": \"abc\", \"device\": \"iphone\"}}";
       var content = new StringContent(payload, Encoding.UTF8, "application/json");
       var result = await client.PostAsync("/api/v1.0/identity/client/register/abcdef", content);
       var hubFinished = false;
@@ -147,7 +147,7 @@ namespace IdentityService.Test
 
       var rsa = RSA.Create();
       var pubKey = rsa.ExportRSAPublicKey();
-      payload = $"{{\"base64PublicKey\": \"{Convert.ToBase64String(pubKey)}\"}}";
+      payload = $"{{\"base64PublicKey\": \"{Convert.ToBase64String(pubKey)}\", \"displayName\": \"abc\", \"device\": \"iphone\"}}";
       content = new StringContent(payload, Encoding.UTF8, "application/json");
       result = await client.PostAsync($"/api/v1.0/identity/client/register/{token}", content);
       Assert.Equal(HttpStatusCode.Forbidden, result.StatusCode);
@@ -179,7 +179,7 @@ namespace IdentityService.Test
       using var scope = application.Services.CreateScope();
       var scopedServices = scope.ServiceProvider;
       var clientRepository = scopedServices.GetRequiredService<IClientRepository>();
-      await clientRepository.CreateClient("testClient1", "testSecret1", "").ConfigureAwait(false);
+      await clientRepository.CreateClient("testClient1", "testSecret1", "", "ads", "apple").ConfigureAwait(false);
 
       // send auth request
       // try to auth without signature
@@ -194,9 +194,10 @@ namespace IdentityService.Test
 
       RSA rsa = RSA.Create();
       var pubKey = rsa.ExportRSAPublicKey();
-      await clientRepository.CreateClient("testClient2", "testSecret2", Convert.ToBase64String(pubKey)).ConfigureAwait(false);
+      await clientRepository.CreateClient("testClient2", "testSecret2", Convert.ToBase64String(pubKey), "ads", "apple").ConfigureAwait(false);
 
       // auth valid signature
+      var clientTokenRequestDateOld = clientRepository.GetClient("testClient2").LastTokenRefreshDate;
       var signatureString = "{\"grant_type\":\"client_credentials\",\"client_id\":\"testClient2\",\"client_secret\":\"testSecret2\"}";
       payload = new List<KeyValuePair<string, string>>();
       payload.Add(new KeyValuePair<string, string>("grant_type", "client_credentials"));
@@ -208,6 +209,8 @@ namespace IdentityService.Test
       dynamic token = JObject.Parse(tokenResult);
       string accessToken = token.access_token;
       Assert.True(!string.IsNullOrEmpty(accessToken));
+      var clientTokenRequestDateUpdated = clientRepository.GetClient("testClient2").LastTokenRefreshDate;
+      Assert.True(clientTokenRequestDateUpdated > clientTokenRequestDateOld);
 
       client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
       var resultList = await client.GetAsync("/api/v1.0/identity/client/list");

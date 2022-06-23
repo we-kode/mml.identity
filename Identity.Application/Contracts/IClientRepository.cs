@@ -41,7 +41,9 @@ namespace Identity.Application.Contracts
     /// <param name="clientId">The client id</param>
     /// <param name="clientSecret">the client secret</param>
     /// <param name="b64PublicKey">base64 string of the public key</param>
-    Task CreateClient(string clientId, string clientSecret, string b64PublicKey);
+    /// <param name="displayName">The name of the client which will be shown to admins.</param>
+    /// <param name="device">An identification of the device the client belongs to to differentiate between devices. E.g. the device name.</param>
+    Task CreateClient(string clientId, string clientSecret, string b64PublicKey, string displayName, string device);
 
     /// <summary>
     /// Updates one clients display name
@@ -82,5 +84,11 @@ namespace Identity.Application.Contracts
     /// <param name="id">The id of the client.</param>
     /// <returns><see cref="Client"/></returns>
     Client GetClient(string id);
+
+    /// <summary>
+    /// Sets the token request date to current <see cref="DateTime.UtcNow"></see>
+    /// </summary>
+    /// <param name="clientId">Teh id of the client to be updated.</param>
+    void UpdateTokenRequestDate(string clientId);
   }
 }
