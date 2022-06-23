@@ -5,34 +5,33 @@ using System.Threading.Tasks;
 namespace Identity.CLI
 {
   /// <summary>
-  /// Contains function for creating, listing and deleting upload clients
+  /// Contains function for creating, listing and deleting admin app clients
   /// </summary>
-  public class UploadClient
+  public class AdminClient
   {
     private readonly IClientRepository _clientRepository;
 
-    public UploadClient(IClientRepository clientRepository)
+    public AdminClient(IClientRepository clientRepository)
     {
       _clientRepository = clientRepository;
     }
 
     /// <summary>
-    /// Creates a new upload client
+    /// Creates a new admin app client
     /// </summary>
-    public async Task CreateUploadClient()
+    public async Task CreateAdminAppClient()
     {
-      var client = new Application.Models.UploadClient();
-      await _clientRepository.CreateUploadClient(client).ConfigureAwait(false);
+      var client = await _clientRepository.CreateAdminApp().ConfigureAwait(false);
       Console.WriteLine(client);
     }
 
     /// <summary>
-    /// Lists all available upload clients
+    /// Lists all available admin app clients
     /// </summary>
     /// <returns></returns>
-    public void ListUploadClients()
+    public void ListAdminAppClients()
     {
-      var clients = _clientRepository.ListUploadClientIds();
+      var clients = _clientRepository.ListAdminClientIds();
       foreach (var client in clients)
       {
         Console.WriteLine(client);
@@ -40,10 +39,10 @@ namespace Identity.CLI
     }
 
     /// <summary>
-    /// Removes one upload client
+    /// Removes one admin app client
     /// </summary>
     /// <param name="clientId">Id of the client to be removed</param>
-    public void DeleteUploadClient(Guid clientId)
+    public void DeleteAdminAppClient(Guid clientId)
     {
       _clientRepository.DeleteClient(clientId.ToString());
       Console.WriteLine($"Client {clientId} deleted!");

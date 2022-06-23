@@ -24,16 +24,10 @@ namespace Identity.Application.Contracts
     void DeleteClient(string id);
 
     /// <summary>
-    /// Saves a new uplaod client
-    /// </summary>
-    /// <param name="client">The <see cref="UploadClient"/> to be saved</param>
-    Task CreateUploadClient(UploadClient client);
-
-    /// <summary>
-    /// Lists the ids of the existing upload clients
+    /// Lists the ids of the existing admin clients
     /// </summary>
     /// <returns><see cref="IList{T}"/> of client ids</returns>
-    IList<Guid> ListUploadClientIds();
+    IList<Guid> ListAdminClientIds();
 
     /// <summary>
     /// Creates a new Client
