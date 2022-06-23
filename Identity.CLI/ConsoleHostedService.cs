@@ -45,16 +45,16 @@ namespace Identity.CLI
                 return;
               }
 
-              var uploadClient = new UploadClient(_clientRepository);
+              var adminClient = new AdminClient(_clientRepository);
               switch (args[1])
               {
-                case "-uc":
-                  await uploadClient.CreateUploadClient().ConfigureAwait(false);
+                case "-ac":
+                  await adminClient.CreateAdminAppClient().ConfigureAwait(false);
                   return;
-                case "-ul":
-                  uploadClient.ListUploadClients();
+                case "-al":
+                  adminClient.ListAdminAppClients();
                   return;
-                case "-ud":
+                case "-ad":
                   if (args.Length == 3)
                   {
                     if (!Guid.TryParse(args[2], out Guid clientId))
@@ -62,7 +62,7 @@ namespace Identity.CLI
                       Console.WriteLine("Invalid Client id.");
                       return;
                     }
-                    uploadClient.DeleteUploadClient(clientId);
+                    adminClient.DeleteAdminAppClient(clientId);
                     return;
                   }
                   Console.WriteLine("Please enter client id.");

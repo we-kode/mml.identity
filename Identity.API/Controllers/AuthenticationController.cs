@@ -110,12 +110,6 @@ namespace Identity.Controllers
         var client = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, null, Claims.Role);
         client.AddClaim(Claims.Subject, request.ClientId!, Destinations.AccessToken);
 
-        if (request.GetScopes().Contains(Application.IdentityConstants.Scopes.Upload))
-        {
-          var cp = new ClaimsPrincipal(client).SetScopes(request.GetScopes());
-          return SignIn(cp, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
-        }
-
         if (string.IsNullOrEmpty(request.CodeChallenge))
         {
           return Unauthorized();
