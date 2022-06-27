@@ -9,9 +9,9 @@ WORKDIR /app
 EXPOSE 5051
 ENV ASPNETCORE_ENVIRONMENT=Release
 RUN echo 'alias create="dotnet /app/cli/Identity.CLI.dll"' >> ~/.bashrc && \
-    echo 'alias upload-create="dotnet /app/cli/Identity.CLI.dll -uc"' >> ~/.bashrc && \
-    echo 'alias upload-list="dotnet /app/cli/Identity.CLI.dll -ul"' >> ~/.bashrc && \
-    echo 'alias upload-remove="dotnet /app/cli/Identity.CLI.dll -ud"' >> ~/.bashrc
+    echo 'alias admin-create="dotnet /app/cli/Identity.CLI.dll -ac"' >> ~/.bashrc && \
+    echo 'alias admin-list="dotnet /app/cli/Identity.CLI.dll -al"' >> ~/.bashrc && \
+    echo 'alias admin-remove="dotnet /app/cli/Identity.CLI.dll -ad"' >> ~/.bashrc
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 ARG DOT_NET_BUILD_CONFIG=Release

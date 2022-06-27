@@ -1,6 +1,5 @@
 ﻿using CryptoHelper;
 using Identity.Application.Contracts;
-using Identity.Application.IdentityConstants;
 using Identity.Application.Models;
 using Identity.DBContext;
 using Identity.DBContext.Models;
@@ -28,7 +27,7 @@ namespace Identity.Infrastructure
     {
       using var context = _contextFactory();
       var query = context.Applications
-        .Where(app => !string.IsNullOrEmpty(app.Permissions) && !EF.Functions.Like(app.Permissions, $"%{Scopes.Upload}%"))
+        .Where(app => !string.IsNullOrEmpty(app.Permissions))
         .Where(app => EF.Functions.Like(app.Permissions!, $"%{OpenIddictConstants.GrantTypes.ClientCredentials}%"))
         .Where(app => string.IsNullOrEmpty(filter) || EF.Functions.ILike(app.DisplayName ?? "", $"%{filter}%"))
         .OrderBy(app => app.DisplayName);
@@ -128,31 +127,11 @@ namespace Identity.Infrastructure
       return clientId;
     }
 
-    public async Task CreateUploadClient(UploadClient client)
-    {
-      using var context = _contextFactory();
-      var appClient = new OpenIddictClientApplication
-      {
-        ClientId = client.ClientId,
-        ClientSecret = Crypto.HashPassword(client.ClientSecret),
-        DisplayName = $"Upload client {client.ClientId}",
-        Permissions = JsonSerializer.Serialize(new[]
-        {
-          OpenIddictConstants.Permissions.Endpoints.Token,
-          OpenIddictConstants.Permissions.GrantTypes.ClientCredentials,
-          OpenIddictConstants.Permissions.Prefixes.Scope + Scopes.Upload
-        }),
-        Type = OpenIddictConstants.ClientTypes.Confidential
-      };
-      context.Applications.Add(appClient);
-      await context.SaveChangesAsync().ConfigureAwait(false);
-    }
-
-    public IList<Guid> ListUploadClientIds()
+    public IList<Guid> ListAdminClientIds()
     {
       using var context = _contextFactory();
       return context.Applications
-        .Where(app => EF.Functions.ILike(app.Permissions ?? "", $"%{Scopes.Upload}%"))
+        .Where(app => EF.Functions.ILike(app.Permissions ?? "", $"%{OpenIddictConstants.Permissions.GrantTypes.Password}%"))
         .Select(app => Guid.Parse(app.ClientId!))
         .ToList();
     }
