@@ -140,6 +140,7 @@ namespace Identity.Controllers
         var claimsPrincipal = new ClaimsPrincipal(client);
         claimsPrincipal.SetScopes(request.GetScopes());
 
+        _clientRepository.UpdateTokenRequestDate(request.ClientId!);
         return SignIn(claimsPrincipal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
       }
 

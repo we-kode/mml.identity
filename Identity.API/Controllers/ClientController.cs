@@ -169,7 +169,7 @@ namespace Identity.Controllers
         return BadRequest();
       }
 
-      var client = await _service.CreateClient(request.Base64PublicKey).ConfigureAwait(false);
+      var client = await _service.CreateClient(request.Base64PublicKey, request.DisplayName, request.DeviceIdentifier).ConfigureAwait(false);
       if (client == null)
       {
         return StatusCode(HttpStatusCodes.BusinessError, "CLIENT_CREATION_FAILED");

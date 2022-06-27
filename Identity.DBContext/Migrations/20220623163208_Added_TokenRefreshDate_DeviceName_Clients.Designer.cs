@@ -3,6 +3,7 @@ using System;
 using Identity.DBContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,10 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Identity.DBContext.Migrations
 {
     [DbContext(typeof(ApplicationDBContext))]
-    partial class ApplicationDBContextModelSnapshot : ModelSnapshot
+    [Migration("20220623163208_Added_TokenRefreshDate_DeviceName_Clients")]
+    partial class Added_TokenRefreshDate_DeviceName_Clients
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -50,10 +52,10 @@ namespace Identity.DBContext.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("consent_type");
 
-                    b.Property<string>("DeviceIdentifier")
+                    b.Property<string>("DeviceName")
                         .IsRequired()
                         .HasColumnType("text")
-                        .HasColumnName("device_identifier");
+                        .HasColumnName("device_name");
 
                     b.Property<string>("DisplayName")
                         .HasColumnType("text")
