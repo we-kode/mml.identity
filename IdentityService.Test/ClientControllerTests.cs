@@ -55,7 +55,7 @@ namespace IdentityService.Test
     {
       // update existing client
       var clientId = Guid.NewGuid();
-      var payload = $"{{\"clientId\": \"{clientId}\", \"displayName\": \"abc\", \"device\": \"apple\"}}";
+      var payload = $"{{\"clientId\": \"{clientId}\", \"displayName\": \"abc\", \"deviceIdentifier\": \"apple\"}}";
       var content = new StringContent(payload, Encoding.UTF8, "application/json");
       var result = await client.PostAsync("/api/v1.0/identity/client", content);
       Assert.Equal(HttpStatusCode.NotFound, result.StatusCode);
@@ -108,7 +108,7 @@ namespace IdentityService.Test
     public async void Test_RegisterClient()
     {
       var someRandomString = Convert.ToBase64String(Encoding.UTF8.GetBytes("somerandomstring"));
-      var payload = $"{{\"base64PublicKey\": \"{someRandomString}\", \"displayName\": \"abc\", \"device\": \"iphone\"}}";
+      var payload = $"{{\"base64PublicKey\": \"{someRandomString}\", \"displayName\": \"abc\", \"deviceIdentifier\": \"iphone\"}}";
       var content = new StringContent(payload, Encoding.UTF8, "application/json");
       var result = await client.PostAsync("/api/v1.0/identity/client/register/abcdef", content);
       var hubFinished = false;
@@ -147,7 +147,7 @@ namespace IdentityService.Test
 
       var rsa = RSA.Create();
       var pubKey = rsa.ExportRSAPublicKey();
-      payload = $"{{\"base64PublicKey\": \"{Convert.ToBase64String(pubKey)}\", \"displayName\": \"abc\", \"device\": \"iphone\"}}";
+      payload = $"{{\"base64PublicKey\": \"{Convert.ToBase64String(pubKey)}\", \"displayName\": \"abc\", \"deviceIdentifier\": \"iphone\"}}";
       content = new StringContent(payload, Encoding.UTF8, "application/json");
       result = await client.PostAsync($"/api/v1.0/identity/client/register/{token}", content);
       Assert.Equal(HttpStatusCode.Forbidden, result.StatusCode);
