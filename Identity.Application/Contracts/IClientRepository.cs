@@ -1,4 +1,4 @@
-﻿using Identity.Application.IdentityConstants;
+using Identity.Application.IdentityConstants;
 using Identity.Application.Models;
 using System;
 using System.Collections.Generic;
@@ -88,7 +88,7 @@ namespace Identity.Application.Contracts
     /// <summary>
     /// Sets the token request date to current <see cref="DateTime.UtcNow"></see>
     /// </summary>
-    /// <param name="clientId">Teh id of the client to be updated.</param>
+    /// <param name="clientId">The id of the client to be updated.</param>
     void UpdateTokenRequestDate(string clientId);
   }
 }

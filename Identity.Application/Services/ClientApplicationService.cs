@@ -22,7 +22,7 @@ namespace Identity.Application.Services
     /// </summary>
     /// <param name="b64PublicKey">the public key of the new client as base64 string</param>
     /// <param name="displayName">The name of the client which will be shown to admins.</param>
-    /// <param name="deviceIdentifier">An identification of the device the client belongs to to differentiate between devices. E.g. the device name.</param>
+    /// <param name="device">An identification of the device the client belongs to, to differentiate between devices. E.g. the device name.</param>
     /// <returns><see cref="ApplicationClient"/></returns>
     public async Task<ApplicationClient?> CreateClient(string b64PublicKey, string displayName, string deviceIdentifier)
     {
