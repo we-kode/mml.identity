@@ -35,7 +35,7 @@ namespace Identity.Infrastructure
 
       var count = query.Count();
       var clients = query
-        .Select(app => new Client(app.ClientId ?? "", app.DisplayName ?? "", app.DeviceName) { LastTokenRefreshDate = app.LastTokenRefreshDate })
+        .Select(app => new Client(app.ClientId ?? "", app.DisplayName ?? "", app.DeviceIdentifier) { LastTokenRefreshDate = app.LastTokenRefreshDate })
         .Skip(skip)
         .Take(take)
         .ToList();
@@ -68,7 +68,7 @@ namespace Identity.Infrastructure
       using var context = _contextFactory();
       var clientToBeUpdated = context.Applications.First(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == client.ClientId);
       clientToBeUpdated.DisplayName = client.DisplayName;
-      clientToBeUpdated.DeviceName = client.Device;
+      clientToBeUpdated.DeviceIdentifier = client.DeviceIdentifier;
       context.SaveChanges();
     }
 
@@ -78,7 +78,7 @@ namespace Identity.Infrastructure
       return context.Applications.FirstOrDefault(app => app.ClientId == clientId)?.PublicKey;
     }
 
-    public async Task CreateClient(string clientId, string clientSecret, string b64PublicKey, string displayName, string device)
+    public async Task CreateClient(string clientId, string clientSecret, string b64PublicKey, string displayName, string deviceIdentifier)
     {
       using var context = _contextFactory();
       var client = new OpenIddictClientApplication
@@ -93,7 +93,7 @@ namespace Identity.Infrastructure
         }),
         Type = OpenIddictConstants.ClientTypes.Confidential,
         DisplayName = displayName,
-        DeviceName = device
+        DeviceIdentifier = deviceIdentifier
       };
       context.Applications.Add(client);
       await context.SaveChangesAsync().ConfigureAwait(false);
@@ -167,13 +167,17 @@ namespace Identity.Infrastructure
     {
       using var context = _contextFactory();
       var client = context.Applications.First(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == id);
-      return new Client(client.ClientId ?? "", client.DisplayName ?? "", client.DeviceName) { LastTokenRefreshDate = client.LastTokenRefreshDate };
+      return new Client(client.ClientId ?? "", client.DisplayName ?? "", client.DeviceIdentifier) { LastTokenRefreshDate = client.LastTokenRefreshDate };
     }
 
     public void UpdateTokenRequestDate(string clientId)
     {
       using var context = _contextFactory();
-      var client = context.Applications.First(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == clientId);
+      var client = context.Applications.FirstOrDefault(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == clientId);
+      if (client == null)
+      {
+        return;
+      }
       client.LastTokenRefreshDate = DateTime.UtcNow;
       context.SaveChanges();
     }

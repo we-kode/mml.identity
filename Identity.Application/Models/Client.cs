@@ -20,7 +20,7 @@ namespace Identity.Application.Models
     /// <summary>
     /// An identification of the device the client belongs to to differentiate between devices. E.g. the device name.
     /// </summary>
-    public string Device { get; }
+    public string DeviceIdentifier { get; }
 
     /// <summary>
     /// The last date and time the client requested a new token.
@@ -33,12 +33,12 @@ namespace Identity.Application.Models
     /// <param name="clientId">The id of the client</param>
     /// <param name="displayName">The display name of the client</param>
     /// <param name="lastTokenRefreshDate">The last date and time the client requested a new token</param>
-    /// <param name="device">An identification of the device the client belongs to to differentiate between devices. E.g. the device name.</param>
-    public Client(string clientId, string displayName, string device)
+    /// <param name="deviceIdentifier">An identification of the device the client belongs to to differentiate between devices. E.g. the device name.</param>
+    public Client(string clientId, string displayName, string deviceIdentifier)
     {
       ClientId = clientId;
       DisplayName = displayName;
-      Device = device;
+      DeviceIdentifier = deviceIdentifier;
     }
   }
 }

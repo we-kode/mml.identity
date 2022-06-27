@@ -42,8 +42,8 @@ namespace Identity.Application.Contracts
     /// <param name="clientSecret">the client secret</param>
     /// <param name="b64PublicKey">base64 string of the public key</param>
     /// <param name="displayName">The name of the client which will be shown to admins.</param>
-    /// <param name="device">An identification of the device the client belongs to to differentiate between devices. E.g. the device name.</param>
-    Task CreateClient(string clientId, string clientSecret, string b64PublicKey, string displayName, string device);
+    /// <param name="deviceIdentifier">An identification of the device the client belongs to to differentiate between devices. E.g. the device name.</param>
+    Task CreateClient(string clientId, string clientSecret, string b64PublicKey, string displayName, string deviceIdentifier);
 
     /// <summary>
     /// Updates one clients display name

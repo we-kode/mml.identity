@@ -22,9 +22,9 @@ namespace Identity.Application.Services
     /// </summary>
     /// <param name="b64PublicKey">the public key of the new client as base64 string</param>
     /// <param name="displayName">The name of the client which will be shown to admins.</param>
-    /// <param name="device">An identification of the device the client belongs to to differentiate between devices. E.g. the device name.</param>
+    /// <param name="deviceIdentifier">An identification of the device the client belongs to to differentiate between devices. E.g. the device name.</param>
     /// <returns><see cref="ApplicationClient"/></returns>
-    public async Task<ApplicationClient?> CreateClient(string b64PublicKey, string displayName, string device)
+    public async Task<ApplicationClient?> CreateClient(string b64PublicKey, string displayName, string deviceIdentifier)
     {
       using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
       var secret = new Password(secretLength).Next();
@@ -33,7 +33,7 @@ namespace Identity.Application.Services
       {
         return null;
       }
-      await _repository.CreateClient(client.ClientId, client.ClientSecret, b64PublicKey, displayName, device).ConfigureAwait(false);
+      await _repository.CreateClient(client.ClientId, client.ClientSecret, b64PublicKey, displayName, deviceIdentifier).ConfigureAwait(false);
       scope.Complete();
       return client;
     }

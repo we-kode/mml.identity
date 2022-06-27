@@ -24,19 +24,19 @@ namespace Identity.Contracts
     /// An identification of the device the client belongs to to differentiate between devices. E.g. the device name.
     /// </summary>
     [Required(ErrorMessageResourceName = nameof(Resources.ValidationMessages.Required), ErrorMessageResourceType = typeof(Resources.ValidationMessages))]
-    public string Device { get; set; }
+    public string DeviceIdentifier { get; set; }
 
     /// <summary>
     /// Inits a client
     /// </summary>
     /// <param name="clientId">The id of the client</param>
     /// <param name="displayName">The display name of the client</param>
-    /// <param name="device">An identification of the device the client belongs to to differentiate between devices. E.g. the device name.</param>
-    public ClientUpdateRequest(Guid clientId, string displayName, string device)
+    /// <param name="deviceIdentifier">An identification of the device the client belongs to to differentiate between devices. E.g. the device name.</param>
+    public ClientUpdateRequest(Guid clientId, string displayName, string deviceIdentifier)
     {
       ClientId = clientId;
       DisplayName = displayName;
-      Device = device;
+      DeviceIdentifier = deviceIdentifier;
     }
   }
 }

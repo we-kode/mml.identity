@@ -24,19 +24,19 @@ namespace Identity.Contracts
     /// An identification of the device the client belongs to to differentiate between devices. E.g. the device name.
     /// </summary>
     [Required(ErrorMessageResourceName = nameof(Resources.ValidationMessages.Required), ErrorMessageResourceType = typeof(Resources.ValidationMessages))]
-    public string Device { get; set; }
+    public string DeviceIdentifier { get; set; }
 
     /// <summary>
     /// Inits request
     /// </summary>
     /// <param name="base64PublicKey">Public Key of the client base64 encoded</param>
     /// <param name="displayName">The name of the client which will be shown to admins.</param>
-    /// <param name="device">An identification of the device the client belongs to to differentiate between devices. E.g. the device name.</param>
-    public RegisterClientRequest(string base64PublicKey, string displayName, string device)
+    /// <param name="deviceIdentifier">An identification of the device the client belongs to to differentiate between devices. E.g. the device name.</param>
+    public RegisterClientRequest(string base64PublicKey, string displayName, string deviceIdentifier)
     {
       Base64PublicKey = base64PublicKey;
       DisplayName = displayName;
-      Device = device;
+      DeviceIdentifier = deviceIdentifier;
     }
   }
 }
