@@ -15,7 +15,6 @@ namespace Identity.Infrastructure
 {
   public class SqlClientRepository : IClientRepository
   {
-
     private readonly Func<ApplicationDBContext> _contextFactory;
 
     public SqlClientRepository(Func<ApplicationDBContext> contextFactory)
@@ -55,6 +54,7 @@ namespace Identity.Infrastructure
         return;
       }
 
+      // TODO: Sent message and remove client groups
       context.Tokens.RemoveRange(context.Tokens.Where(token => token.Application == client));
       context.Authorizations.RemoveRange(context.Authorizations.Where(authorization => authorization.Application == client));
       context.Applications.Remove(client);

@@ -18,6 +18,10 @@ namespace Identity.DBContext
 
     public DbSet<OpenIddictClientToken> Tokens => Set<OpenIddictClientToken>();
 
+    public DbSet<Group> Groups => Set<Group>();
+
+    public DbSet<ClientGroup> ClientGroups => Set<ClientGroup>();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) => optionsBuilder.UseSnakeCaseNamingConvention();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -35,6 +39,27 @@ namespace Identity.DBContext
         }
         modelBuilder.Entity(entity.Name).ToTable(currentTableName.ToUnderscoreCase());
       }
+
+      CreateClientGroupRelationDefinition(modelBuilder);
+    }
+
+    private void CreateClientGroupRelationDefinition(ModelBuilder modelBuilder)
+    {
+      modelBuilder.Entity<ClientGroup>(cg => {
+        cg.HasKey(cg => new { cg.ClientId, cg.GroupId });
+
+        cg.HasOne<Group>(cg => cg.Group)
+        .WithMany()
+        .HasForeignKey(cg => cg.GroupId)
+        .IsRequired()
+        .OnDelete(DeleteBehavior.Restrict);
+
+        cg.HasOne<OpenIddictClientApplication>(cg => cg.Client)
+        .WithMany(client => client.ClientGroups)
+        .HasForeignKey(cg => cg.ClientId)
+        .IsRequired()
+        .OnDelete(DeleteBehavior.Restrict);
+      });
     }
   }
 }
