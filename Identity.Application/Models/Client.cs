@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Identity.Application.Models
 {
@@ -28,17 +29,28 @@ namespace Identity.Application.Models
     public DateTime LastTokenRefreshDate { get; set; }
 
     /// <summary>
+    /// List of groups the client is assigned to.
+    /// </summary>
+    public ICollection<Group> Groups { get; set; }
+
+    /// <summary>
     /// Inits a client
     /// </summary>
     /// <param name="clientId">The id of the client</param>
     /// <param name="displayName">The display name of the client</param>
     /// <param name="lastTokenRefreshDate">The last date and time the client requested a new token</param>
     /// <param name="deviceIdentifier">An identification of the device the client belongs to, to differentiate between devices. E.g. the device name.</param>
-    public Client(string clientId, string displayName, string deviceIdentifier)
+    public Client(
+      string clientId,
+      string displayName,
+      string deviceIdentifier,
+      ICollection<Group> groups
+    )
     {
       ClientId = clientId;
       DisplayName = displayName;
       DeviceIdentifier = deviceIdentifier;
+      Groups = groups ?? new List<Group>();
     }
   }
 }

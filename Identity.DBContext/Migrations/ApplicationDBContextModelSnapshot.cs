@@ -581,14 +581,14 @@ namespace Identity.DBContext.Migrations
                     b.HasOne("Identity.DBContext.Models.OpenIddictClientApplication", "Client")
                         .WithMany("ClientGroups")
                         .HasForeignKey("ClientId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_client_group_open_iddict_applications_client_id");
 
                     b.HasOne("Identity.DBContext.Models.Group", "Group")
                         .WithMany()
                         .HasForeignKey("GroupId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_client_group_groups_group_id");
 

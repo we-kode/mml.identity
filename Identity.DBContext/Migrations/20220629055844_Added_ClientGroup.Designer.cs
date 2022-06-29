@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Identity.DBContext.Migrations
 {
     [DbContext(typeof(ApplicationDBContext))]
-    [Migration("20220628150217_Added_ClientGroup")]
+    [Migration("20220629055844_Added_ClientGroup")]
     partial class Added_ClientGroup
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -583,14 +583,14 @@ namespace Identity.DBContext.Migrations
                     b.HasOne("Identity.DBContext.Models.OpenIddictClientApplication", "Client")
                         .WithMany("ClientGroups")
                         .HasForeignKey("ClientId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_client_group_open_iddict_applications_client_id");
 
                     b.HasOne("Identity.DBContext.Models.Group", "Group")
                         .WithMany()
                         .HasForeignKey("GroupId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_client_group_groups_group_id");
 

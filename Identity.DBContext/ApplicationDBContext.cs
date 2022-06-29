@@ -51,14 +51,12 @@ namespace Identity.DBContext
         cg.HasOne<Group>(cg => cg.Group)
         .WithMany()
         .HasForeignKey(cg => cg.GroupId)
-        .IsRequired()
-        .OnDelete(DeleteBehavior.Restrict);
+        .IsRequired();
 
         cg.HasOne<OpenIddictClientApplication>(cg => cg.Client)
         .WithMany(client => client.ClientGroups)
         .HasForeignKey(cg => cg.ClientId)
-        .IsRequired()
-        .OnDelete(DeleteBehavior.Restrict);
+        .IsRequired();
       });
     }
   }

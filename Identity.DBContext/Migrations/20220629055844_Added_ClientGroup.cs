@@ -40,14 +40,14 @@ namespace Identity.DBContext.Migrations
                         principalSchema: "public",
                         principalTable: "group",
                         principalColumn: "id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "fk_client_group_open_iddict_applications_client_id",
                         column: x => x.client_id,
                         principalSchema: "public",
                         principalTable: "open_iddict_client_application",
                         principalColumn: "id",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(

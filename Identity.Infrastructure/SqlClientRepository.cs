@@ -33,7 +33,7 @@ namespace Identity.Infrastructure
 
       var count = query.Count();
       var clients = query
-        .Select(app => new Client(app.ClientId ?? "", app.DisplayName ?? "", app.DeviceIdentifier) { LastTokenRefreshDate = app.LastTokenRefreshDate })
+        .Select(app => MapModel(app))
         .Skip(skip)
         .Take(take)
         .ToList();
@@ -54,7 +54,6 @@ namespace Identity.Infrastructure
         return;
       }
 
-      // TODO: Sent message and remove client groups
       context.Tokens.RemoveRange(context.Tokens.Where(token => token.Application == client));
       context.Authorizations.RemoveRange(context.Authorizations.Where(authorization => authorization.Application == client));
       context.Applications.Remove(client);
@@ -146,7 +145,7 @@ namespace Identity.Infrastructure
     {
       using var context = _contextFactory();
       var client = context.Applications.First(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == id);
-      return new Client(client.ClientId ?? "", client.DisplayName ?? "", client.DeviceIdentifier) { LastTokenRefreshDate = client.LastTokenRefreshDate };
+      return MapModel(client);
     }
 
     public void UpdateTokenRequestDate(string clientId)
@@ -159,6 +158,19 @@ namespace Identity.Infrastructure
       }
       client.LastTokenRefreshDate = DateTime.UtcNow;
       context.SaveChanges();
+    }
+
+    private Client MapModel(OpenIddictClientApplication client)
+    {
+      return new Client(
+        client.ClientId ?? "",
+        client.DisplayName ?? "",
+        client.DeviceIdentifier,
+        client.ClientGroups.Select(cg => new Application.Models.Group(
+          cg.Group.Id, cg.Group.Name, cg.Group.IsDefault
+        )).ToArray()) {
+          LastTokenRefreshDate = client.LastTokenRefreshDate
+        };
     }
   }
 }
