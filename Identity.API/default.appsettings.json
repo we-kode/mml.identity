@@ -28,5 +28,11 @@
   "ConnectionStrings": {
     "IdentityConnection": "Server=wekode.mml.db;Port=5432;Database=identity;User Id=identity;Password=identity;",
     "DistributedCache": "wekode.mml.cache:7379,ssl=true,password=<password>"
+  },
+  "MassTransit": {
+    "Host": "localhost",
+    "User": "guest",
+    "Password": "guest",
+    "VirtualHost": "/"
   }
 }

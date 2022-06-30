@@ -12,6 +12,7 @@ using Identity.Handlers;
 using Identity.Infrastructure;
 using Identity.Middleware;
 using Identity.Sockets;
+using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -73,6 +74,25 @@ builder.Services.AddCors(options =>
              .AllowAnyHeader();
   });
 });
+builder.Services.AddMassTransit(mt => 
+{
+  mt.UsingRabbitMq((context, cfg) => 
+  {
+    cfg.Host(builder.Configuration["MassTransit:Host"], builder.Configuration["MassTransit:VirtualHost"], h => {
+      h.Username(builder.Configuration["MassTransit:User"]);
+      h.Password(builder.Configuration["MassTransit:Password"]);
+    });
+
+    cfg.ConfigureEndpoints(context);
+  });
+});
+builder.Services.AddOptions<MassTransitHostOptions>()
+  .Configure(options =>
+  {
+    options.WaitUntilStarted = true;
+    options.StartTimeout = TimeSpan.FromSeconds(10);
+    options.StopTimeout = TimeSpan.FromSeconds(30);
+  });
 #endregion
 
 #region localizations

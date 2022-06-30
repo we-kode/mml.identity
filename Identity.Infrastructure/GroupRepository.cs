@@ -2,6 +2,8 @@
 using Identity.Application.Contracts;
 using Identity.Application.Models;
 using Identity.DBContext;
+using MassTransit;
+using Messages;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
@@ -13,10 +15,15 @@ namespace Identity.Infrastructure
   public class GroupRepository : IGroupRepository
   {
     private readonly Func<ApplicationDBContext> _contextFactory;
+    private readonly IPublishEndpoint _publishEndpoint;
 
-    public GroupRepository(Func<ApplicationDBContext> contextFactory)
+    public GroupRepository(
+      Func<ApplicationDBContext> contextFactory,
+      IPublishEndpoint publishEndpoint
+    )
     {
       _contextFactory = contextFactory;
+      _publishEndpoint = publishEndpoint;
     }
 
     public async Task<Group> CreateNewGroup(string name, bool isDefault)
@@ -33,7 +40,12 @@ namespace Identity.Infrastructure
       await context.Groups.AddAsync(group);
       await context.SaveChangesAsync();
 
-      // TODO: Sent message
+      await _publishEndpoint.Publish<GroupCreated>(new
+      {
+        Id = groupId,
+        Name = name,
+        IsDefault = isDefault
+      });
 
       return MapModel(group);
     }
@@ -47,9 +59,12 @@ namespace Identity.Infrastructure
         return;
       }
 
-      // TODO: Sent message
       context.Groups.Remove(group);
       await context.SaveChangesAsync();
+
+      await _publishEndpoint.Publish<GroupDeleted>(new {
+        Id = groupId
+      });
     }
 
     public async Task<Group> GetGroup(Guid id)
@@ -103,7 +118,12 @@ namespace Identity.Infrastructure
 
       await context.SaveChangesAsync();
 
-      // TODO: Sent message
+      await _publishEndpoint.Publish<GroupUpdated>(new
+      {
+        Id = group.Id,
+        Name = group.Name,
+        IsDefault = group.IsDefault
+      });
     }
 
     private Group MapModel(DbGroup group)
