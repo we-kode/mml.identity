@@ -19,25 +19,25 @@ root@6712536aabd:/app# create
 You will be ask for a username and a password. The password must be at least 12 characters long.
 If no admin app exists already, a new one will be created and the clientId will be printed on the console.
 
-## Create upload clients
+## Create admin clients
 
-Upload clients can be created, listed and removed by the command line in the container. To create one client call
+Admin clients can be created, listed and removed by the command line in the container. To create one client call
 
 ```bash
 docker exec -it wekode.mml.identity /bin/bash
-root@6712536aabd:/app# upload-create
+root@6712536aabd:/app# admin-create
 ```
 
-To list all upload clients call:
+To list all admin clients call:
 
 ```bash
 docker exec -it wekode.mml.identity /bin/bash
-root@6712536aabd:/app# upload-list
+root@6712536aabd:/app# admin-list
 ```
 
 And to remove one client call:
 
 ```bash
 docker exec -it wekode.mml.identity /bin/bash
-root@6712536aabd:/app# upload-remove <client id>
+root@6712536aabd:/app# admin-remove <client id>
 ```
