@@ -30,7 +30,7 @@
     "DistributedCache": "wekode.mml.cache:7379,ssl=true,password=<password>"
   },
   "MassTransit": {
-    "Host": "localhost",
+    "Host": "wekode.mml.mbus",
     "User": "guest",
     "Password": "guest",
     "VirtualHost": "/"

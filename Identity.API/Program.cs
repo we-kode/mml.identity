@@ -36,6 +36,7 @@ builder.Configuration
 
 #region services
 // Add services to the container.
+builder.Services.AddScoped<GroupExistsFilter>();
 builder.Services.AddScoped<UserExistsFilter>();
 builder.Services.AddScoped<TokenRegistrationFilter>();
 builder.Services.AddSignalR().AddJsonProtocol();
@@ -227,6 +228,7 @@ builder.Host.ConfigureContainer<ContainerBuilder>(cBuilder =>
 
   cBuilder.RegisterType<SqlIdentityRepository>().AsImplementedInterfaces();
   cBuilder.RegisterType<SqlClientRepository>().AsImplementedInterfaces();
+  cBuilder.RegisterType<SqlGroupRepository>().AsImplementedInterfaces();
 
   if (!builder.Environment.IsEnvironment("Test"))
   {

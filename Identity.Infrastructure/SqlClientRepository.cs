@@ -160,7 +160,7 @@ namespace Identity.Infrastructure
       context.SaveChanges();
     }
 
-    private Client MapModel(OpenIddictClientApplication client)
+    private static Client MapModel(OpenIddictClientApplication client)
     {
       return new Client(
         client.ClientId ?? "",

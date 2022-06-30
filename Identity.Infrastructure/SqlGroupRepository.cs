@@ -12,12 +12,12 @@ using DbGroup = Identity.DBContext.Models.Group;
 
 namespace Identity.Infrastructure
 {
-  public class GroupRepository : IGroupRepository
+  public class SqlGroupRepository : IGroupRepository
   {
     private readonly Func<ApplicationDBContext> _contextFactory;
     private readonly IPublishEndpoint _publishEndpoint;
 
-    public GroupRepository(
+    public SqlGroupRepository(
       Func<ApplicationDBContext> contextFactory,
       IPublishEndpoint publishEndpoint
     )
@@ -126,7 +126,7 @@ namespace Identity.Infrastructure
       });
     }
 
-    private Group MapModel(DbGroup group)
+    private static Group MapModel(DbGroup group)
     {
       return new Group
       (
