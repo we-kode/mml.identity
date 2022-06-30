@@ -23,23 +23,23 @@ namespace Identity.DBContext.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Identity.DBContext.Models.ClientGroup", b =>
+            modelBuilder.Entity("GroupOpenIddictClientApplication", b =>
                 {
-                    b.Property<string>("ClientId")
+                    b.Property<string>("ClientsId")
                         .HasColumnType("text")
-                        .HasColumnName("client_id");
+                        .HasColumnName("clients_id");
 
-                    b.Property<Guid>("GroupId")
+                    b.Property<Guid>("GroupsId")
                         .HasColumnType("uuid")
-                        .HasColumnName("group_id");
+                        .HasColumnName("groups_id");
 
-                    b.HasKey("ClientId", "GroupId")
-                        .HasName("pk_client_group");
+                    b.HasKey("ClientsId", "GroupsId")
+                        .HasName("pk_group_open_iddict_client_application");
 
-                    b.HasIndex("GroupId")
-                        .HasDatabaseName("ix_client_group_group_id");
+                    b.HasIndex("GroupsId")
+                        .HasDatabaseName("ix_group_open_iddict_client_application_groups_id");
 
-                    b.ToTable("client_group", "public");
+                    b.ToTable("group_open_iddict_client_application", "public");
                 });
 
             modelBuilder.Entity("Identity.DBContext.Models.Group", b =>
@@ -576,25 +576,21 @@ namespace Identity.DBContext.Migrations
                     b.ToTable("identity_user_token", "public");
                 });
 
-            modelBuilder.Entity("Identity.DBContext.Models.ClientGroup", b =>
+            modelBuilder.Entity("GroupOpenIddictClientApplication", b =>
                 {
-                    b.HasOne("Identity.DBContext.Models.OpenIddictClientApplication", "Client")
-                        .WithMany("ClientGroups")
-                        .HasForeignKey("ClientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_client_group_open_iddict_applications_client_id");
-
-                    b.HasOne("Identity.DBContext.Models.Group", "Group")
+                    b.HasOne("Identity.DBContext.Models.OpenIddictClientApplication", null)
                         .WithMany()
-                        .HasForeignKey("GroupId")
+                        .HasForeignKey("ClientsId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_client_group_groups_group_id");
+                        .HasConstraintName("fk_group_open_iddict_client_application_applications_clients_id");
 
-                    b.Navigation("Client");
-
-                    b.Navigation("Group");
+                    b.HasOne("Identity.DBContext.Models.Group", null)
+                        .WithMany()
+                        .HasForeignKey("GroupsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_group_open_iddict_client_application_groups_groups_id");
                 });
 
             modelBuilder.Entity("Identity.DBContext.Models.OpenIddictClientAuthorization", b =>
@@ -684,8 +680,6 @@ namespace Identity.DBContext.Migrations
             modelBuilder.Entity("Identity.DBContext.Models.OpenIddictClientApplication", b =>
                 {
                     b.Navigation("Authorizations");
-
-                    b.Navigation("ClientGroups");
 
                     b.Navigation("Tokens");
                 });

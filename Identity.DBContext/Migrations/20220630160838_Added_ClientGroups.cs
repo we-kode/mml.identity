@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Identity.DBContext.Migrations
 {
-    public partial class Added_ClientGroup : Migration
+    public partial class Added_ClientGroups : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -24,43 +24,43 @@ namespace Identity.DBContext.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "client_group",
+                name: "group_open_iddict_client_application",
                 schema: "public",
                 columns: table => new
                 {
-                    client_id = table.Column<string>(type: "text", nullable: false),
-                    group_id = table.Column<Guid>(type: "uuid", nullable: false)
+                    clients_id = table.Column<string>(type: "text", nullable: false),
+                    groups_id = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_client_group", x => new { x.client_id, x.group_id });
+                    table.PrimaryKey("pk_group_open_iddict_client_application", x => new { x.clients_id, x.groups_id });
                     table.ForeignKey(
-                        name: "fk_client_group_groups_group_id",
-                        column: x => x.group_id,
+                        name: "fk_group_open_iddict_client_application_applications_clients_id",
+                        column: x => x.clients_id,
                         principalSchema: "public",
-                        principalTable: "group",
+                        principalTable: "open_iddict_client_application",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "fk_client_group_open_iddict_applications_client_id",
-                        column: x => x.client_id,
+                        name: "fk_group_open_iddict_client_application_groups_groups_id",
+                        column: x => x.groups_id,
                         principalSchema: "public",
-                        principalTable: "open_iddict_client_application",
+                        principalTable: "group",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "ix_client_group_group_id",
+                name: "ix_group_open_iddict_client_application_groups_id",
                 schema: "public",
-                table: "client_group",
-                column: "group_id");
+                table: "group_open_iddict_client_application",
+                column: "groups_id");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "client_group",
+                name: "group_open_iddict_client_application",
                 schema: "public");
 
             migrationBuilder.DropTable(

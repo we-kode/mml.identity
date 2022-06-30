@@ -90,9 +90,9 @@ builder.Services.AddMassTransit(mt =>
 builder.Services.AddOptions<MassTransitHostOptions>()
   .Configure(options =>
   {
-    options.WaitUntilStarted = true;
-    options.StartTimeout = TimeSpan.FromSeconds(10);
-    options.StopTimeout = TimeSpan.FromSeconds(30);
+    options.WaitUntilStarted = bool.Parse(builder.Configuration["MassTransit:WaitUntilStarted"]);
+    options.StartTimeout = TimeSpan.FromSeconds(double.Parse(builder.Configuration["MassTransit:StartTimeoutSeconds"]));
+    options.StopTimeout = TimeSpan.FromSeconds(double.Parse(builder.Configuration["MassTransit:StopTimeoutSeconds"]));
   });
 #endregion
 

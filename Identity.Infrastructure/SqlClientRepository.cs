@@ -10,22 +10,29 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using DBGroup = Identity.DBContext.Models.Group;
 
 namespace Identity.Infrastructure
 {
   public class SqlClientRepository : IClientRepository
   {
     private readonly Func<ApplicationDBContext> _contextFactory;
+    private readonly IGroupRepository _groupRepository;
 
-    public SqlClientRepository(Func<ApplicationDBContext> contextFactory)
+    public SqlClientRepository(
+      Func<ApplicationDBContext> contextFactory,
+      IGroupRepository groupRepository
+    )
     {
       _contextFactory = contextFactory;
+      _groupRepository = groupRepository;
     }
 
     public Clients ListClients(string? filter, int skip, int take)
     {
       using var context = _contextFactory();
       var query = context.Applications
+        .Include(app => app.Groups)
         .Where(app => !string.IsNullOrEmpty(app.Permissions))
         .Where(app => EF.Functions.Like(app.Permissions!, $"%{OpenIddictConstants.GrantTypes.ClientCredentials}%"))
         .Where(app => string.IsNullOrEmpty(filter) || EF.Functions.ILike(app.DisplayName ?? "", $"%{filter}%"))
@@ -67,6 +74,14 @@ namespace Identity.Infrastructure
       var clientToBeUpdated = context.Applications.First(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == client.ClientId);
       clientToBeUpdated.DisplayName = client.DisplayName;
       clientToBeUpdated.DeviceIdentifier = client.DeviceIdentifier;
+      clientToBeUpdated.Groups = client.Groups
+        .Where(g => _groupRepository.GroupExists(g.Id).GetAwaiter().GetResult())
+        .Select(g => new DBGroup
+        {
+          Id = g.Id,
+          Name = g.Name,
+          IsDefault = g.IsDefault
+        }).ToArray();
       context.SaveChanges();
     }
 
@@ -144,7 +159,9 @@ namespace Identity.Infrastructure
     public Client GetClient(string id)
     {
       using var context = _contextFactory();
-      var client = context.Applications.First(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == id);
+      var client = context.Applications
+        .Include(app => app.Groups)
+        .First(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == id);
       return MapModel(client);
     }
 
@@ -166,8 +183,8 @@ namespace Identity.Infrastructure
         client.ClientId ?? "",
         client.DisplayName ?? "",
         client.DeviceIdentifier,
-        client.ClientGroups.Select(cg => new Application.Models.Group(
-          cg.Group.Id, cg.Group.Name, cg.Group.IsDefault
+        client.Groups.Select(g => new Application.Models.Group(
+          g.Id, g.Name, g.IsDefault
         )).ToArray()) {
           LastTokenRefreshDate = client.LastTokenRefreshDate
         };
