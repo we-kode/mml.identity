@@ -29,7 +29,7 @@ namespace Identity.Contracts
     public string DeviceIdentifier { get; set; }
 
     /// <summary>
-    /// 
+    /// List of groups the client is assigned to.
     /// </summary>
     [Required(ErrorMessageResourceName = nameof(Resources.ValidationMessages.Required), ErrorMessageResourceType = typeof(Resources.ValidationMessages))]
     public ICollection<Group> Groups { get; set; }

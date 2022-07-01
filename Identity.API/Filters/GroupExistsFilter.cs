@@ -5,7 +5,6 @@ using System;
 
 namespace Identity.Filters
 {
-
   public class GroupExistsFilter : ActionFilterAttribute
   {
     private readonly IGroupRepository _groupRepository;
