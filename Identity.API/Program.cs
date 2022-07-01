@@ -26,6 +26,7 @@ using OpenIddict.Validation.AspNetCore;
 using Quartz;
 using ScottBrady91.AspNetCore.Identity;
 using System;
+using static OpenIddict.Abstractions.OpenIddictConstants;
 using static OpenIddict.Server.OpenIddictServerEvents;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -152,7 +153,8 @@ builder.Services.AddOpenIddict()
 
       options.SetTokenEndpointUris("/api/v1.0/identity/connect/token")
              .SetUserinfoEndpointUris("/api/v1.0/identity/connect/userinfo")
-             .SetLogoutEndpointUris("/api/v1.0/identity/connect/logout");
+             .SetLogoutEndpointUris("/api/v1.0/identity/connect/logout")
+             .SetIntrospectionEndpointUris("/introspect");
 
       options.UseReferenceAccessTokens();
       options.UseReferenceRefreshTokens();
@@ -298,6 +300,21 @@ app.UseEndpoints(endpoints =>
   endpoints.MapHub<RegisterClientHub>("/hub/client");
 });
 #endregion
+
+using var scope = app.Services.CreateScope();
+var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
+if (await manager.FindByClientIdAsync("resource_server_1") is null)
+{
+  await manager.CreateAsync(new OpenIddictApplicationDescriptor
+  {
+    ClientId = "resource_server_1",
+    ClientSecret = "846B62D0-DEF9-4215-A99D-86E6B8DAB342",
+    Permissions =
+                {
+                    Permissions.Endpoints.Introspection
+                }
+  });
+}
 
 app.Run();
 
