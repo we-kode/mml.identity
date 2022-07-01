@@ -71,17 +71,39 @@ namespace Identity.Infrastructure
     public void Update(Client client)
     {
       using var context = _contextFactory();
-      var clientToBeUpdated = context.Applications.First(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == client.ClientId);
+
+      var clientToBeUpdated = context.Applications
+        .Include(app => app.Groups)
+        .First(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == client.ClientId);
+
       clientToBeUpdated.DisplayName = client.DisplayName;
       clientToBeUpdated.DeviceIdentifier = client.DeviceIdentifier;
-      clientToBeUpdated.Groups = client.Groups
+
+      var addedGroups = client.Groups
         .Where(g => _groupRepository.GroupExists(g.Id).GetAwaiter().GetResult())
+        .Where(g => !clientToBeUpdated.Groups.Select(cg => cg.Id).Contains(g.Id))
         .Select(g => new DBGroup
         {
           Id = g.Id,
           Name = g.Name,
           IsDefault = g.IsDefault
-        }).ToArray();
+        })
+        .ToArray();
+
+      var deletedGroups = clientToBeUpdated.Groups
+        .Where(g => !client.Groups.Select(cg => cg.Id).Contains(g.Id))
+        .ToArray();
+
+      foreach (var addedGroup in addedGroups)
+      {
+        clientToBeUpdated.Groups.Add(addedGroup);
+      }
+
+      foreach (var deletedGroup in deletedGroups)
+      {
+        clientToBeUpdated.Groups.Remove(deletedGroup);
+      }
+
       context.SaveChanges();
     }
 
@@ -94,6 +116,11 @@ namespace Identity.Infrastructure
     public async Task CreateClient(string clientId, string clientSecret, string b64PublicKey, string displayName, string deviceIdentifier)
     {
       using var context = _contextFactory();
+
+      var defaultGroups = context.Groups
+        .Where(g => g.IsDefault)
+        .ToArray();
+
       var client = new OpenIddictClientApplication
       {
         ClientId = clientId,
@@ -106,8 +133,10 @@ namespace Identity.Infrastructure
         }),
         Type = OpenIddictConstants.ClientTypes.Confidential,
         DisplayName = displayName,
-        DeviceIdentifier = deviceIdentifier
+        DeviceIdentifier = deviceIdentifier,
+        Groups = defaultGroups
       };
+
       context.Applications.Add(client);
       await context.SaveChangesAsync().ConfigureAwait(false);
     }
