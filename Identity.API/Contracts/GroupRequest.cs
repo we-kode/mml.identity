@@ -16,7 +16,6 @@ namespace Identity.Contracts
     /// <summary>
     /// The default flag.
     /// </summary>
-    [Required(ErrorMessageResourceName = nameof(Resources.ValidationMessages.Required), ErrorMessageResourceType = typeof(Resources.ValidationMessages))]
     public bool IsDefault { get; set; }
 
     /// <summary>

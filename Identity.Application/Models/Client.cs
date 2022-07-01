@@ -40,6 +40,7 @@ namespace Identity.Application.Models
     /// <param name="displayName">The display name of the client</param>
     /// <param name="lastTokenRefreshDate">The last date and time the client requested a new token</param>
     /// <param name="deviceIdentifier">An identification of the device the client belongs to, to differentiate between devices. E.g. the device name.</param>
+    /// <param name="groups">List of groups the client is assigned to.</param>
     public Client(
       string clientId,
       string displayName,

@@ -28,6 +28,8 @@ using Quartz;
 using ScottBrady91.AspNetCore.Identity;
 using System;
 using static OpenIddict.Server.OpenIddictServerEvents;
+using DbGroup = Identity.DBContext.Models.Group;
+using Group = Identity.Application.Models.Group;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -248,6 +250,7 @@ builder.Host.ConfigureContainer<ContainerBuilder>(cBuilder =>
   cBuilder.Register(context => new MapperConfiguration(cfg =>
   {
     cfg.CreateMap<ClientUpdateRequest, Client>();
+    cfg.CreateMap<DbGroup, Group>();
   })).AsSelf().SingleInstance();
   cBuilder.Register(c =>
   {
