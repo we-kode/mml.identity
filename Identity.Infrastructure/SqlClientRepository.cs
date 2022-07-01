@@ -10,23 +10,29 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using DBGroup = Identity.DBContext.Models.Group;
 
 namespace Identity.Infrastructure
 {
   public class SqlClientRepository : IClientRepository
   {
-
     private readonly Func<ApplicationDBContext> _contextFactory;
+    private readonly IGroupRepository _groupRepository;
 
-    public SqlClientRepository(Func<ApplicationDBContext> contextFactory)
+    public SqlClientRepository(
+      Func<ApplicationDBContext> contextFactory,
+      IGroupRepository groupRepository
+    )
     {
       _contextFactory = contextFactory;
+      _groupRepository = groupRepository;
     }
 
     public Clients ListClients(string? filter, int skip, int take)
     {
       using var context = _contextFactory();
       var query = context.Applications
+        .Include(app => app.Groups)
         .Where(app => !string.IsNullOrEmpty(app.Permissions))
         .Where(app => EF.Functions.Like(app.Permissions!, $"%{OpenIddictConstants.GrantTypes.ClientCredentials}%"))
         .Where(app => string.IsNullOrEmpty(filter) || EF.Functions.ILike(app.DisplayName ?? "", $"%{filter}%"))
@@ -34,7 +40,7 @@ namespace Identity.Infrastructure
 
       var count = query.Count();
       var clients = query
-        .Select(app => new Client(app.ClientId ?? "", app.DisplayName ?? "", app.DeviceIdentifier) { LastTokenRefreshDate = app.LastTokenRefreshDate })
+        .Select(app => MapModel(app))
         .Skip(skip)
         .Take(take)
         .ToList();
@@ -65,9 +71,39 @@ namespace Identity.Infrastructure
     public void Update(Client client)
     {
       using var context = _contextFactory();
-      var clientToBeUpdated = context.Applications.First(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == client.ClientId);
+
+      var clientToBeUpdated = context.Applications
+        .Include(app => app.Groups)
+        .First(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == client.ClientId);
+
       clientToBeUpdated.DisplayName = client.DisplayName;
       clientToBeUpdated.DeviceIdentifier = client.DeviceIdentifier;
+
+      var addedGroups = client.Groups
+        .Where(g => _groupRepository.GroupExists(g.Id).GetAwaiter().GetResult())
+        .Where(g => !clientToBeUpdated.Groups.Select(cg => cg.Id).Contains(g.Id))
+        .Select(g => new DBGroup
+        {
+          Id = g.Id,
+          Name = g.Name,
+          IsDefault = g.IsDefault
+        })
+        .ToArray();
+
+      var deletedGroups = clientToBeUpdated.Groups
+        .Where(g => !client.Groups.Select(cg => cg.Id).Contains(g.Id))
+        .ToArray();
+
+      foreach (var addedGroup in addedGroups)
+      {
+        clientToBeUpdated.Groups.Add(addedGroup);
+      }
+
+      foreach (var deletedGroup in deletedGroups)
+      {
+        clientToBeUpdated.Groups.Remove(deletedGroup);
+      }
+
       context.SaveChanges();
     }
 
@@ -80,6 +116,11 @@ namespace Identity.Infrastructure
     public async Task CreateClient(string clientId, string clientSecret, string b64PublicKey, string displayName, string deviceIdentifier)
     {
       using var context = _contextFactory();
+
+      var defaultGroups = context.Groups
+        .Where(g => g.IsDefault)
+        .ToArray();
+
       var client = new OpenIddictClientApplication
       {
         ClientId = clientId,
@@ -92,8 +133,10 @@ namespace Identity.Infrastructure
         }),
         Type = OpenIddictConstants.ClientTypes.Confidential,
         DisplayName = displayName,
-        DeviceIdentifier = deviceIdentifier
+        DeviceIdentifier = deviceIdentifier,
+        Groups = defaultGroups
       };
+
       context.Applications.Add(client);
       await context.SaveChangesAsync().ConfigureAwait(false);
     }
@@ -145,8 +188,10 @@ namespace Identity.Infrastructure
     public Client GetClient(string id)
     {
       using var context = _contextFactory();
-      var client = context.Applications.First(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == id);
-      return new Client(client.ClientId ?? "", client.DisplayName ?? "", client.DeviceIdentifier) { LastTokenRefreshDate = client.LastTokenRefreshDate };
+      var client = context.Applications
+        .Include(app => app.Groups)
+        .First(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == id);
+      return MapModel(client);
     }
 
     public void UpdateTokenRequestDate(string clientId)
@@ -159,6 +204,19 @@ namespace Identity.Infrastructure
       }
       client.LastTokenRefreshDate = DateTime.UtcNow;
       context.SaveChanges();
+    }
+
+    private static Client MapModel(OpenIddictClientApplication client)
+    {
+      return new Client(
+        client.ClientId ?? "",
+        client.DisplayName ?? "",
+        client.DeviceIdentifier,
+        client.Groups.Select(g => new Application.Models.Group(
+          g.Id, g.Name, g.IsDefault
+        )).ToArray()) {
+          LastTokenRefreshDate = client.LastTokenRefreshDate
+        };
     }
   }
 }

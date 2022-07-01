@@ -3,6 +3,7 @@ using Autofac.Extensions.DependencyInjection;
 using Identity.Application;
 using Identity.DBContext;
 using Identity.Infrastructure;
+using MassTransit;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -51,12 +52,33 @@ namespace Identity.CLI
             })
                 .AddEntityFrameworkStores<ApplicationDBContext>()
                 .AddDefaultTokenProviders();
+                
+            services.AddMassTransit(mt => 
+            {
+              mt.UsingRabbitMq((context, cfg) => 
+              {
+                cfg.Host(config["MassTransit:Host"], config["MassTransit:VirtualHost"], h => {
+                  h.Username(config["MassTransit:User"]);
+                  h.Password(config["MassTransit:Password"]);
+                });
+
+                cfg.ConfigureEndpoints(context);
+              });
+            });
+            services.AddOptions<MassTransitHostOptions>()
+              .Configure(options =>
+              {
+                options.WaitUntilStarted = bool.Parse(config["MassTransit:WaitUntilStarted"]);
+                options.StartTimeout = TimeSpan.FromSeconds(double.Parse(config["MassTransit:StartTimeoutSeconds"]));
+                options.StopTimeout = TimeSpan.FromSeconds(double.Parse(config["MassTransit:StopTimeoutSeconds"]));
+              });
           })
           .ConfigureContainer<ContainerBuilder>((context, cBuilder) =>
           {
             cBuilder.RegisterType<ApplicationService>();
             cBuilder.RegisterType<BCryptPasswordHasher<IdentityUser<long>>>().AsImplementedInterfaces();
 
+            cBuilder.RegisterType<SqlGroupRepository>().AsImplementedInterfaces();
             cBuilder.RegisterType<SqlIdentityRepository>().AsImplementedInterfaces();
             cBuilder.RegisterType<SqlClientRepository>().AsImplementedInterfaces();
 
