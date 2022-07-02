@@ -151,10 +151,11 @@ builder.Services.AddOpenIddict()
       options.AllowRefreshTokenFlow();
       options.AllowClientCredentialsFlow();
 
+      options.SetIssuer(new Uri("https://dev.wekode:5050/"));
       options.SetTokenEndpointUris("/api/v1.0/identity/connect/token")
              .SetUserinfoEndpointUris("/api/v1.0/identity/connect/userinfo")
              .SetLogoutEndpointUris("/api/v1.0/identity/connect/logout")
-             .SetIntrospectionEndpointUris("/introspect");
+             .SetIntrospectionEndpointUris("/api/v1.0/identity/connect/introspect");
 
       options.UseReferenceAccessTokens();
       options.UseReferenceRefreshTokens();
@@ -165,8 +166,6 @@ builder.Services.AddOpenIddict()
       options.SetAccessTokenLifetime(TimeSpan.FromMinutes(int.Parse(builder.Configuration["OpenId:AccessTokenLifetimeMinutes"])));
       options.SetRefreshTokenLifetime(TimeSpan.FromMinutes(int.Parse(builder.Configuration["OpenId:RefreshTokenLifetimeMinutes"])));
       options.SetRefreshTokenReuseLeeway(TimeSpan.FromSeconds(int.Parse(builder.Configuration["OpenId:RefreshTokenReuseLeewaySeconds"])));
-
-      options.RegisterScopes(Identity.Application.IdentityConstants.Scopes.Upload);
 
       if (builder.Environment.IsEnvironment("Test"))
       {
@@ -270,7 +269,7 @@ if (!roleManager.RoleExistsAsync(Identity.Application.IdentityConstants.Roles.Ad
 #endregion
 
 #region middleware configuration
-app.UseApiKeyValidation();
+//app.UseApiKeyValidation();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

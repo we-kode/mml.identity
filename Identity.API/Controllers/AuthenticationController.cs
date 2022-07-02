@@ -73,6 +73,7 @@ namespace Identity.Controllers
         }
         var claimsPrincipal = new ClaimsPrincipal(identity);
         claimsPrincipal.SetScopes(request.GetScopes());
+        claimsPrincipal.SetResources("resource_server_1");
 
         return SignIn(claimsPrincipal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
       }
@@ -139,6 +140,7 @@ namespace Identity.Controllers
         client.AddClaim(Claims.Role, Roles.Client, Destinations.AccessToken);
         var claimsPrincipal = new ClaimsPrincipal(client);
         claimsPrincipal.SetScopes(request.GetScopes());
+        claimsPrincipal.SetResources("resource_server_1");
 
         _clientRepository.UpdateTokenRequestDate(request.ClientId!);
         return SignIn(claimsPrincipal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
