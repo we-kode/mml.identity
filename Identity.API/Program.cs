@@ -269,7 +269,7 @@ if (!roleManager.RoleExistsAsync(Identity.Application.IdentityConstants.Roles.Ad
 #endregion
 
 #region middleware configuration
-//app.UseApiKeyValidation();
+app.UseApiKeyValidation();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

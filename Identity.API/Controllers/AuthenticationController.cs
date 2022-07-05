@@ -100,6 +100,7 @@ namespace Identity.Controllers
         {
           claim.SetDestinations(claim.GetDestinations(principal));
         }
+        principal.SetResources("resource_server_1");
 
         // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
         return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);

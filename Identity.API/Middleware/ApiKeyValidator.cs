@@ -22,10 +22,16 @@ namespace Identity.Middleware
 
     public async Task Invoke(HttpContext context)
     {
-      if (!context.Request.Headers.ContainsKey(APP_KEY_HEADER))
+      // allow request from api services to validate access token.
+      if (context.Request.HasFormContentType)
       {
-        await _UnauthorizedRespone(context);
-        return;
+        var form = context.Request.Form;
+        string allowedClient = form["client_id"];
+        if (context.Request.Path.Value!.EndsWith("identity/connect/introspect") && allowedClient == "resource_server_1")
+        {
+          await _next.Invoke(context);
+          return;
+        }
       }
 
       var isAdminAppRequest = context.Request.Headers[APP_KEY_HEADER] == _configuration.GetValue(ADMIN_APP_KEY, string.Empty);
