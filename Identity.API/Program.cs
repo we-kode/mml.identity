@@ -78,11 +78,12 @@ builder.Services.AddCors(options =>
              .AllowAnyHeader();
   });
 });
-builder.Services.AddMassTransit(mt => 
+builder.Services.AddMassTransit(mt =>
 {
-  mt.UsingRabbitMq((context, cfg) => 
+  mt.UsingRabbitMq((context, cfg) =>
   {
-    cfg.Host(builder.Configuration["MassTransit:Host"], builder.Configuration["MassTransit:VirtualHost"], h => {
+    cfg.Host(builder.Configuration["MassTransit:Host"], builder.Configuration["MassTransit:VirtualHost"], h =>
+    {
       h.Username(builder.Configuration["MassTransit:User"]);
       h.Password(builder.Configuration["MassTransit:Password"]);
     });
@@ -174,7 +175,7 @@ builder.Services.AddOpenIddict()
       options.AllowRefreshTokenFlow();
       options.AllowClientCredentialsFlow();
 
-      options.SetIssuer(new Uri("https://dev.wekode:5050/"));
+      options.SetIssuer(new Uri(builder.Configuration["OpenId:Issuer"]));
       options.SetTokenEndpointUris("/api/v1.0/identity/connect/token")
              .SetUserinfoEndpointUris("/api/v1.0/identity/connect/userinfo")
              .SetLogoutEndpointUris("/api/v1.0/identity/connect/logout")
@@ -325,19 +326,30 @@ app.UseEndpoints(endpoints =>
 });
 #endregion
 
+// Create api clients if not exist
 using var scope = app.Services.CreateScope();
 var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
-if (await manager.FindByClientIdAsync("resource_server_1") is null)
+var apiClientsSection = app.Configuration.GetSection("ApiClients");
+foreach (IConfigurationSection apiClient in apiClientsSection.GetChildren())
 {
-  await manager.CreateAsync(new OpenIddictApplicationDescriptor
+  var id = apiClient.GetValue<string>("ClientId");
+  if (string.IsNullOrEmpty(id))
   {
-    ClientId = "resource_server_1",
-    ClientSecret = "846B62D0-DEF9-4215-A99D-86E6B8DAB342",
-    Permissions =
-                {
-                    Permissions.Endpoints.Introspection
-                }
-  });
+    continue;
+  }
+  var secret = apiClient.GetValue<string>("ClientSecret");
+  if (await manager.FindByClientIdAsync(id) is null)
+  {
+    await manager.CreateAsync(new OpenIddictApplicationDescriptor
+    {
+      ClientId = id,
+      ClientSecret = secret,
+      Permissions =
+      {
+        Permissions.Endpoints.Introspection
+      }
+    });
+  }
 }
 
 app.Run();

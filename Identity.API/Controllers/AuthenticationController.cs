@@ -73,7 +73,7 @@ namespace Identity.Controllers
         }
         var claimsPrincipal = new ClaimsPrincipal(identity);
         claimsPrincipal.SetScopes(request.GetScopes());
-        claimsPrincipal.SetResources("resource_server_1");
+        claimsPrincipal.SetResources(_clientRepository.GetApiClients());
 
         return SignIn(claimsPrincipal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
       }
@@ -100,7 +100,7 @@ namespace Identity.Controllers
         {
           claim.SetDestinations(claim.GetDestinations(principal));
         }
-        principal.SetResources("resource_server_1");
+        principal.SetResources(_clientRepository.GetApiClients());
 
         // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
         return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
