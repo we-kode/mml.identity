@@ -333,10 +333,6 @@ var apiClientsSection = app.Configuration.GetSection("ApiClients");
 foreach (IConfigurationSection apiClient in apiClientsSection.GetChildren())
 {
   var id = apiClient.GetValue<string>("ClientId");
-  if (string.IsNullOrEmpty(id))
-  {
-    continue;
-  }
   var secret = apiClient.GetValue<string>("ClientSecret");
   if (await manager.FindByClientIdAsync(id) is null)
   {
