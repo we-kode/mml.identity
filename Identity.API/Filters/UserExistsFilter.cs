@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace Identity.Filters
 {
-
   public class UserExistsFilter : ActionFilterAttribute
   {
     private readonly IIdentityRepository _identityRepository;

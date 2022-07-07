@@ -39,7 +39,7 @@ namespace Identity.Controllers
     /// <summary>
     /// Loads a list of existing users.
     /// </summary>
-    /// <param name="request">Filter request to filter the list pof users</param>
+    /// <param name="request">Filter request to filter the list of users</param>
     /// <param name="skip">Offset of the list</param>
     /// <param name="take">Size of chunk to be loaded</param>
     /// <returns><see cref="Users"/></returns>

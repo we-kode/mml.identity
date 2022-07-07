@@ -18,6 +18,8 @@ namespace Identity.DBContext
 
     public DbSet<OpenIddictClientToken> Tokens => Set<OpenIddictClientToken>();
 
+    public DbSet<Group> Groups => Set<Group>();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) => optionsBuilder.UseSnakeCaseNamingConvention();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

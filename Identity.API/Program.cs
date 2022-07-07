@@ -12,6 +12,7 @@ using Identity.Handlers;
 using Identity.Infrastructure;
 using Identity.Middleware;
 using Identity.Sockets;
+using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -28,6 +29,8 @@ using ScottBrady91.AspNetCore.Identity;
 using System;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 using static OpenIddict.Server.OpenIddictServerEvents;
+using DbGroup = Identity.DBContext.Models.Group;
+using Group = Identity.Application.Models.Group;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,6 +39,7 @@ builder.Configuration
 
 #region services
 // Add services to the container.
+builder.Services.AddScoped<GroupExistsFilter>();
 builder.Services.AddScoped<UserExistsFilter>();
 builder.Services.AddScoped<TokenRegistrationFilter>();
 builder.Services.AddSignalR().AddJsonProtocol();
@@ -74,6 +78,25 @@ builder.Services.AddCors(options =>
              .AllowAnyHeader();
   });
 });
+builder.Services.AddMassTransit(mt => 
+{
+  mt.UsingRabbitMq((context, cfg) => 
+  {
+    cfg.Host(builder.Configuration["MassTransit:Host"], builder.Configuration["MassTransit:VirtualHost"], h => {
+      h.Username(builder.Configuration["MassTransit:User"]);
+      h.Password(builder.Configuration["MassTransit:Password"]);
+    });
+
+    cfg.ConfigureEndpoints(context);
+  });
+});
+builder.Services.AddOptions<MassTransitHostOptions>()
+  .Configure(options =>
+  {
+    options.WaitUntilStarted = bool.Parse(builder.Configuration["MassTransit:WaitUntilStarted"]);
+    options.StartTimeout = TimeSpan.FromSeconds(double.Parse(builder.Configuration["MassTransit:StartTimeoutSeconds"]));
+    options.StopTimeout = TimeSpan.FromSeconds(double.Parse(builder.Configuration["MassTransit:StopTimeoutSeconds"]));
+  });
 #endregion
 
 #region localizations
@@ -208,6 +231,7 @@ builder.Host.ConfigureContainer<ContainerBuilder>(cBuilder =>
 
   cBuilder.RegisterType<SqlIdentityRepository>().AsImplementedInterfaces();
   cBuilder.RegisterType<SqlClientRepository>().AsImplementedInterfaces();
+  cBuilder.RegisterType<SqlGroupRepository>().AsImplementedInterfaces();
 
   if (!builder.Environment.IsEnvironment("Test"))
   {
@@ -227,6 +251,7 @@ builder.Host.ConfigureContainer<ContainerBuilder>(cBuilder =>
   cBuilder.Register(context => new MapperConfiguration(cfg =>
   {
     cfg.CreateMap<ClientUpdateRequest, Client>();
+    cfg.CreateMap<DbGroup, Group>();
   })).AsSelf().SingleInstance();
   cBuilder.Register(c =>
   {

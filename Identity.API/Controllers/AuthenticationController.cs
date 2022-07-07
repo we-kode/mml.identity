@@ -139,6 +139,13 @@ namespace Identity.Controllers
         }
 
         client.AddClaim(Claims.Role, Roles.Client, Destinations.AccessToken);
+
+        var dbClient = _clientRepository.GetClient(request.ClientId!);
+
+        foreach (var group in dbClient.Groups) {
+          client.AddClaim(IdentityClaims.ClientGroup, group.Id.ToString(), Destinations.AccessToken);
+        }
+
         var claimsPrincipal = new ClaimsPrincipal(client);
         claimsPrincipal.SetScopes(request.GetScopes());
         claimsPrincipal.SetResources("resource_server_1");
