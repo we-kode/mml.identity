@@ -1,6 +1,9 @@
+using Identity.Application.Contracts;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using OpenIddict.Abstractions;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Identity.Middleware
@@ -9,23 +12,31 @@ namespace Identity.Middleware
   {
     private readonly RequestDelegate _next;
     private readonly IConfiguration _configuration;
+    private readonly IClientRepository _clientRepository;
 
     private const string APP_KEY_HEADER = "App-Key";
     private const string ADMIN_APP_KEY = "ADMIN_APP_KEY";
     private const string APP_KEY = "APP_KEY";
 
-    public ApiKeyValidator(RequestDelegate next, IConfiguration configuration)
+    public ApiKeyValidator(RequestDelegate next, IConfiguration configuration, IClientRepository clientRepository)
     {
       _next = next;
       _configuration = configuration;
+      _clientRepository = clientRepository;
     }
 
     public async Task Invoke(HttpContext context)
     {
-      if (!context.Request.Headers.ContainsKey(APP_KEY_HEADER))
+      // allow request from api services to validate access token.
+      if (context.Request.HasFormContentType)
       {
-        await _UnauthorizedRespone(context);
-        return;
+        var form = context.Request.Form;
+        string clientId = form["client_id"];
+        if (_clientRepository.IsApiClient(clientId))
+        {
+          await _next.Invoke(context);
+          return;
+        }
       }
 
       var isAdminAppRequest = context.Request.Headers[APP_KEY_HEADER] == _configuration.GetValue(ADMIN_APP_KEY, string.Empty);

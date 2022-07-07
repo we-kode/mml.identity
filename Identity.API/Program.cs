@@ -27,6 +27,7 @@ using OpenIddict.Validation.AspNetCore;
 using Quartz;
 using ScottBrady91.AspNetCore.Identity;
 using System;
+using static OpenIddict.Abstractions.OpenIddictConstants;
 using static OpenIddict.Server.OpenIddictServerEvents;
 using DbGroup = Identity.DBContext.Models.Group;
 using Group = Identity.Application.Models.Group;
@@ -77,11 +78,12 @@ builder.Services.AddCors(options =>
              .AllowAnyHeader();
   });
 });
-builder.Services.AddMassTransit(mt => 
+builder.Services.AddMassTransit(mt =>
 {
-  mt.UsingRabbitMq((context, cfg) => 
+  mt.UsingRabbitMq((context, cfg) =>
   {
-    cfg.Host(builder.Configuration["MassTransit:Host"], builder.Configuration["MassTransit:VirtualHost"], h => {
+    cfg.Host(builder.Configuration["MassTransit:Host"], builder.Configuration["MassTransit:VirtualHost"], h =>
+    {
       h.Username(builder.Configuration["MassTransit:User"]);
       h.Password(builder.Configuration["MassTransit:Password"]);
     });
@@ -173,9 +175,11 @@ builder.Services.AddOpenIddict()
       options.AllowRefreshTokenFlow();
       options.AllowClientCredentialsFlow();
 
+      options.SetIssuer(new Uri(builder.Configuration["OpenId:Issuer"]));
       options.SetTokenEndpointUris("/api/v1.0/identity/connect/token")
              .SetUserinfoEndpointUris("/api/v1.0/identity/connect/userinfo")
-             .SetLogoutEndpointUris("/api/v1.0/identity/connect/logout");
+             .SetLogoutEndpointUris("/api/v1.0/identity/connect/logout")
+             .SetIntrospectionEndpointUris("/api/v1.0/identity/connect/introspect");
 
       options.UseReferenceAccessTokens();
       options.UseReferenceRefreshTokens();
@@ -186,8 +190,6 @@ builder.Services.AddOpenIddict()
       options.SetAccessTokenLifetime(TimeSpan.FromMinutes(int.Parse(builder.Configuration["OpenId:AccessTokenLifetimeMinutes"])));
       options.SetRefreshTokenLifetime(TimeSpan.FromMinutes(int.Parse(builder.Configuration["OpenId:RefreshTokenLifetimeMinutes"])));
       options.SetRefreshTokenReuseLeeway(TimeSpan.FromSeconds(int.Parse(builder.Configuration["OpenId:RefreshTokenReuseLeewaySeconds"])));
-
-      options.RegisterScopes(Identity.Application.IdentityConstants.Scopes.Upload);
 
       if (builder.Environment.IsEnvironment("Test"))
       {
@@ -323,6 +325,28 @@ app.UseEndpoints(endpoints =>
   endpoints.MapHub<RegisterClientHub>("/hub/client");
 });
 #endregion
+
+// Create api clients if not exist
+using var scope = app.Services.CreateScope();
+var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
+var apiClientsSection = app.Configuration.GetSection("ApiClients");
+foreach (IConfigurationSection apiClient in apiClientsSection.GetChildren())
+{
+  var id = apiClient.GetValue<string>("ClientId");
+  var secret = apiClient.GetValue<string>("ClientSecret");
+  if (await manager.FindByClientIdAsync(id) is null)
+  {
+    await manager.CreateAsync(new OpenIddictApplicationDescriptor
+    {
+      ClientId = id,
+      ClientSecret = secret,
+      Permissions =
+      {
+        Permissions.Endpoints.Introspection
+      }
+    });
+  }
+}
 
 app.Run();
 

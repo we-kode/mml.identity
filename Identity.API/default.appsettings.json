@@ -23,7 +23,8 @@
     "RefreshTokenLifetimeMinutes": "43200",
     "RefreshTokenReuseLeewaySeconds": "10",
     "TokenLifespanMinutes": "15",
-    "CleanOrphanTokenDays": "1"
+    "CleanOrphanTokenDays": "1",
+    "Issuer":  "https://<url>:<port>/"
   },
   "ConnectionStrings": {
     "IdentityConnection": "Server=wekode.mml.db;Port=5432;Database=identity;User Id=identity;Password=identity;",
@@ -37,5 +38,11 @@
     "WaitUntilStarted": true,
     "StartTimeoutSeconds": 10,
     "StopTimeoutSeconds": 30
-  }
+  },
+  "ApiClients": [
+    {
+      "ClientId": "<ClientId>",
+      "ClientSecret": "<ClientSecret>"
+    }
+  ]
 }

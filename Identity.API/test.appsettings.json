@@ -6,11 +6,11 @@
     }
   },
   "AllowedHosts": "*",
-  "ADMIN_APP_KEY": "abc", 
+  "ADMIN_APP_KEY": "abc",
   "APP_KEY": "def",
   "Registration": {
     "REGISTRATION_TOKEN_INTERVAL_MIN": "1",
-    "TOKEN_LENGTH":  "64"
+    "TOKEN_LENGTH": "64"
   },
   "TLS": {
     "Cert": "/certs/dev.wekode.pfx",
@@ -23,10 +23,17 @@
     "RefreshTokenLifetimeMinutes": "43200",
     "RefreshTokenReuseLeewaySeconds": "10",
     "TokenLifespanMinutes": "15",
-    "CleanOrphanTokenDays": "1"
+    "CleanOrphanTokenDays": "1",
+    "Issuer": "https://dev.wekode:5050/"
   },
   "ConnectionStrings": {
     "IdentityConnection": "Server=wekode.mml.db;Port=5432;Database=identity;User Id=identity;Password=identity;",
     "DistributedCache": "wekode.mml.cache:7379,ssl=true,password=<password>"
-  }
+  },
+  "ApiClients": [
+    {
+      "ClientId": "e505b488-7bc9-43aa-937a-b0367bab9b4d",
+      "ClientSecret": "54c78a16-7710-49ef-8bff-8cc4a0c6c0ce"
+    }
+  ]
 }
