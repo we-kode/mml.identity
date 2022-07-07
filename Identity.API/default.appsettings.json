@@ -42,8 +42,7 @@
   "ApiClients": [
     {
       "ClientId": "<ClientId>",
-      "ClientSecret": "<ClientSecret>",
-      "Host":  "<host of client>"
+      "ClientSecret": "<ClientSecret>"
     }
   ]
 }

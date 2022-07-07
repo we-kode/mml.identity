@@ -148,7 +148,7 @@ namespace Identity.Controllers
 
         var claimsPrincipal = new ClaimsPrincipal(client);
         claimsPrincipal.SetScopes(request.GetScopes());
-        claimsPrincipal.SetResources("resource_server_1");
+        claimsPrincipal.SetResources(_clientRepository.GetApiClients());
 
         _clientRepository.UpdateTokenRequestDate(request.ClientId!);
         return SignIn(claimsPrincipal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);

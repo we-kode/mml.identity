@@ -12,26 +12,31 @@ namespace Identity.Middleware
   {
     private readonly RequestDelegate _next;
     private readonly IConfiguration _configuration;
+    private readonly IClientRepository _clientRepository;
 
     private const string APP_KEY_HEADER = "App-Key";
     private const string ADMIN_APP_KEY = "ADMIN_APP_KEY";
     private const string APP_KEY = "APP_KEY";
 
-    public ApiKeyValidator(RequestDelegate next, IConfiguration configuration)
+    public ApiKeyValidator(RequestDelegate next, IConfiguration configuration, IClientRepository clientRepository)
     {
       _next = next;
       _configuration = configuration;
+      _clientRepository = clientRepository;
     }
 
     public async Task Invoke(HttpContext context)
     {
       // allow request from api services to validate access token.
-      var apiClients = _configuration.GetSection("ApiClients").GetChildren();
-      var isValidApiClient = apiClients.Any(client => client.GetValue<string>("Host") == context.Request.Host.Host);
-      if (isValidApiClient)
+      if (context.Request.HasFormContentType)
       {
-        await _next.Invoke(context);
-        return;
+        var form = context.Request.Form;
+        string clientId = form["client_id"];
+        if (_clientRepository.IsApiClient(clientId))
+        {
+          await _next.Invoke(context);
+          return;
+        }
       }
 
       var isAdminAppRequest = context.Request.Headers[APP_KEY_HEADER] == _configuration.GetValue(ADMIN_APP_KEY, string.Empty);
