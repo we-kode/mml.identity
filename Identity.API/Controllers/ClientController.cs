@@ -14,6 +14,7 @@ using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using static OpenIddict.Abstractions.OpenIddictConstants;
@@ -116,6 +117,18 @@ namespace Identity.Controllers
 
       clientRepository.Update(_mapper.Map<Client>(request));
       return Ok();
+    }
+
+    /// <summary>
+    /// Returns server connection settings for a client.
+    /// </summary>
+    [HttpGet("connection_settings")]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
+    public IActionResult GetConnectionSettings()
+    {
+      return new JsonResult(new {
+        ApiKey = ConfigurationManager.AppSettings["APP_KEY"]
+      });
     }
 
     /// <summary>
