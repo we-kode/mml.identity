@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Configuration;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
 using System;
@@ -30,13 +31,20 @@ namespace Identity.Controllers
     private readonly IHubContext<RegisterClientHub> hubContext;
     private readonly ClientApplicationService _service;
     private readonly IMapper _mapper;
+    
+    private readonly IConfiguration _configuration;
 
-    public ClientController(IClientRepository clientRepository, IHubContext<RegisterClientHub> hubContext, ClientApplicationService service, IMapper mapper)
+    public ClientController(IClientRepository clientRepository,
+      IHubContext<RegisterClientHub> hubContext,
+      ClientApplicationService service,
+      IMapper mapper,
+      IConfiguration configuration)
     {
       this.clientRepository = clientRepository;
       this.hubContext = hubContext;
       _service = service;
       _mapper = mapper;
+      _configuration = configuration;
     }
 
     /// <summary>
@@ -127,7 +135,7 @@ namespace Identity.Controllers
     public IActionResult GetConnectionSettings()
     {
       return new JsonResult(new {
-        ApiKey = ConfigurationManager.AppSettings["APP_KEY"]
+        ApiKey = _configuration.GetValue("APP_KEY", string.Empty)
       });
     }
 
