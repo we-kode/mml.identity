@@ -10,10 +10,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Configuration;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using static OpenIddict.Abstractions.OpenIddictConstants;
@@ -29,13 +31,20 @@ namespace Identity.Controllers
     private readonly IHubContext<RegisterClientHub> hubContext;
     private readonly ClientApplicationService _service;
     private readonly IMapper _mapper;
+    
+    private readonly IConfiguration _configuration;
 
-    public ClientController(IClientRepository clientRepository, IHubContext<RegisterClientHub> hubContext, ClientApplicationService service, IMapper mapper)
+    public ClientController(IClientRepository clientRepository,
+      IHubContext<RegisterClientHub> hubContext,
+      ClientApplicationService service,
+      IMapper mapper,
+      IConfiguration configuration)
     {
       this.clientRepository = clientRepository;
       this.hubContext = hubContext;
       _service = service;
       _mapper = mapper;
+      _configuration = configuration;
     }
 
     /// <summary>
@@ -116,6 +125,18 @@ namespace Identity.Controllers
 
       clientRepository.Update(_mapper.Map<Client>(request));
       return Ok();
+    }
+
+    /// <summary>
+    /// Returns server connection settings for a client.
+    /// </summary>
+    [HttpGet("connection_settings")]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
+    public IActionResult GetConnectionSettings()
+    {
+      return new JsonResult(new {
+        ApiKey = _configuration.GetValue("APP_KEY", string.Empty)
+      });
     }
 
     /// <summary>
