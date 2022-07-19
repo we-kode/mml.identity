@@ -33,8 +33,9 @@ namespace Identity.Application.Contracts
     /// Checks whether the given client is allowed to introspect the users access token.
     /// </summary>
     /// <param name="clientId">The id of the client.</param>
+    /// <param name="clientSecret">The secret of the client.</param>
     /// <returns>True, if client is allowed to introspect access tokens.</returns>
-    bool IsApiClient(string clientId);
+    bool IsApiClient(string clientId, string clientSecret);
 
     /// <summary>
     /// Returns List of api clients.
