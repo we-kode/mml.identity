@@ -220,12 +220,14 @@ namespace Identity.Infrastructure
       };
     }
 
-    public bool IsApiClient(string clientId)
+    public bool IsApiClient(string clientId, string clientSecret)
     {
       using var context = _contextFactory();
-      return context.Applications
-        .Where(app => EF.Functions.ILike(app.Permissions ?? "", $"%{OpenIddictConstants.Permissions.Endpoints.Introspection}%"))
-        .Any(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == clientId);
+      var client = context.Applications.FirstOrDefault(app => 
+        EF.Functions.ILike(app.Permissions ?? "", $"%{OpenIddictConstants.Permissions.Endpoints.Introspection}%") && 
+        !string.IsNullOrEmpty(app.ClientId) && app.ClientId == clientId
+      );
+      return client != null && Crypto.VerifyHashedPassword(client.ClientSecret, clientSecret);
     }
 
     public IList<string> GetApiClients()

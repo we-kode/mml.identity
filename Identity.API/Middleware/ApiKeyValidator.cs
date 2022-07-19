@@ -28,11 +28,12 @@ namespace Identity.Middleware
     public async Task Invoke(HttpContext context)
     {
       // allow request from api services to validate access token.
-      if (context.Request.HasFormContentType)
+      if (context.Request.Headers.ContainsKey("ClientId") && context.Request.Headers.ContainsKey("ClientSecret"))
       {
-        var form = context.Request.Form;
-        string clientId = form["client_id"];
-        if (_clientRepository.IsApiClient(clientId))
+        string clientId = context.Request.Headers["ClientId"];
+        string clientSecret = context.Request.Headers["ClientSecret"];
+
+        if (_clientRepository.IsApiClient(clientId, clientSecret))
         {
           await _next.Invoke(context);
           return;
