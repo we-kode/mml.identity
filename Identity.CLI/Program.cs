@@ -1,5 +1,6 @@
 ﻿using Autofac;
 using Autofac.Extensions.DependencyInjection;
+using AutoMapper;
 using Identity.Application;
 using Identity.DBContext;
 using Identity.Infrastructure;
@@ -90,6 +91,21 @@ namespace Identity.CLI
             };
 
             cBuilder.RegisterInstance(factory);
+
+            cBuilder.RegisterInstance(factory);
+
+            cBuilder.Register(context => new MapperConfiguration(cfg =>
+            {
+            })).AsSelf().SingleInstance();
+            cBuilder.Register(c =>
+            {
+              //This resolves a new context that can be used later.
+              var context = c.Resolve<IComponentContext>();
+              var config = context.Resolve<MapperConfiguration>();
+              return config.CreateMapper(context.Resolve);
+            })
+            .As<IMapper>()
+            .InstancePerLifetimeScope();
           })
           .RunConsoleAsync()
           .ConfigureAwait(false);
