@@ -11,7 +11,7 @@ namespace Identity.Handlers
       var response = context.Response;
       if (!string.IsNullOrEmpty(response.Error) && !string.IsNullOrEmpty(response.ErrorDescription))
       {
-        response.Error = "Error occurred";
+        response.Error = "Error occurred 333";
         response.ErrorDescription = string.Empty;
         response.ErrorUri = string.Empty;
       }
