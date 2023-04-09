@@ -19,6 +19,7 @@ using System.Configuration;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using static OpenIddict.Abstractions.OpenIddictConstants;
+using static StackExchange.Redis.Role;
 
 namespace Identity.Controllers
 {
@@ -50,15 +51,31 @@ namespace Identity.Controllers
     /// <summary>
     /// Loads a list of existing clients.
     /// </summary>
-    /// <param name="request">Filter request to filter the list of clients</param>
+    /// <param name="filter">Filter request to filter the list of clients</param>
     /// <param name="skip">Offset of the list</param>
     /// <param name="take">Size of chunk to be loaded</param>
     /// <returns><see cref="Clients"/></returns>
+    [Obsolete("Use POST method instead.")]
     [HttpGet("list")]
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
     public Clients List([FromQuery] string? filter, [FromQuery] int skip = Application.IdentityConstants.List.Skip, [FromQuery] int take = Application.IdentityConstants.List.Take)
     {
-      return clientRepository.ListClients(filter, skip, take);
+      return clientRepository.ListClients(new Application.Contracts.TagFilter(), filter, skip, take);
+    }
+
+    /// <summary>
+    /// Loads a list of existing clients.
+    /// </summary>
+    /// <param name="tagFilter"><see cref="TagFilter"/> to be used to filter clients.</param>
+    /// <param name="filter">Filter request to filter the list of clients</param>
+    /// <param name="skip">Offset of the list</param>
+    /// <param name="take">Size of chunk to be loaded</param>
+    /// <returns><see cref="Clients"/></returns>
+    [HttpPost("list")]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
+    public Clients List([FromBody] Contracts.TagFilter tagFilter, [FromQuery] string? filter, [FromQuery] int skip = Application.IdentityConstants.List.Skip, [FromQuery] int take = Application.IdentityConstants.List.Take)
+    {
+      return clientRepository.ListClients(_mapper.Map<Application.Contracts.TagFilter>(tagFilter), filter, skip, take);
     }
 
     /// <summary>
