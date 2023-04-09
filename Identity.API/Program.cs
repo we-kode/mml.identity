@@ -253,6 +253,7 @@ builder.Host.ConfigureContainer<ContainerBuilder>(cBuilder =>
   {
     cfg.CreateMap<ClientUpdateRequest, Client>();
     cfg.CreateMap<DbGroup, Group>();
+    cfg.CreateMap<TagFilter, Identity.Application.Contracts.TagFilter>();
   })).AsSelf().SingleInstance();
   cBuilder.Register(c =>
   {
