@@ -11,11 +11,12 @@ namespace Identity.Application.Contracts
     /// <summary>
     /// Loads list of clients.
     /// </summary>
+    /// <param name="tagFilter">Tags on which the records will be filtered.</param>
     /// <param name="filter">Clients will be filtered by given string</param>
     /// <param name="skip">Elements to be skipped. default <see cref="List.Skip"/></param>
     /// <param name="filter">Elements to be loaded in one chunk. Default <see cref="List.Take"/></param>
     /// <returns><see cref="Clients"/></returns>
-    Clients ListClients(string? filter = null, int skip = List.Skip, int take = List.Take);
+    Clients ListClients(TagFilter tagFilter, string? filter = null, int skip = List.Skip, int take = List.Take);
 
     /// <summary>
     /// Deletes one client

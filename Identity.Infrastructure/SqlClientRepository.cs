@@ -28,18 +28,23 @@ namespace Identity.Infrastructure
       _groupRepository = groupRepository;
     }
 
-    public Clients ListClients(string? filter, int skip, int take)
+    public Clients ListClients(TagFilter tagFilter, string? filter, int skip, int take)
     {
       using var context = _contextFactory();
       var query = context.Applications
         .Include(app => app.Groups)
         .Where(app => !string.IsNullOrEmpty(app.Permissions))
         .Where(app => EF.Functions.Like(app.Permissions!, $"%{OpenIddictConstants.GrantTypes.ClientCredentials}%"))
-        .Where(app => string.IsNullOrEmpty(filter) || EF.Functions.ILike(app.DisplayName ?? "", $"%{filter}%"))
-        .OrderBy(app => app.DisplayName);
+        .Where(app => string.IsNullOrEmpty(filter) || EF.Functions.ILike(app.DisplayName ?? "", $"%{filter}%"));
+
+      if (tagFilter.Groups.Count > 0)
+      {
+        query = query.Where(c => c.Groups.Any(g => tagFilter.Groups.Contains(g.Id)));
+      }
 
       var count = query.Count();
       var clients = query
+        .OrderBy(app => app.DisplayName)
         .Select(app => MapModel(app))
         .Skip(skip)
         .Take(take)
@@ -223,8 +228,8 @@ namespace Identity.Infrastructure
     public bool IsApiClient(string clientId, string clientSecret)
     {
       using var context = _contextFactory();
-      var client = context.Applications.FirstOrDefault(app => 
-        EF.Functions.ILike(app.Permissions ?? "", $"%{OpenIddictConstants.Permissions.Endpoints.Introspection}%") && 
+      var client = context.Applications.FirstOrDefault(app =>
+        EF.Functions.ILike(app.Permissions ?? "", $"%{OpenIddictConstants.Permissions.Endpoints.Introspection}%") &&
         !string.IsNullOrEmpty(app.ClientId) && app.ClientId == clientId
       );
       return client != null && Crypto.VerifyHashedPassword(client.ClientSecret, clientSecret);
