@@ -109,6 +109,8 @@ namespace Identity.Infrastructure
         clientToBeUpdated.Groups.Remove(deletedGroup);
       }
 
+      context.Tokens.RemoveRange(context.Tokens.Where(token => token.Application == clientToBeUpdated));
+
       context.SaveChanges();
     }
 

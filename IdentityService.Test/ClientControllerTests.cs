@@ -83,7 +83,7 @@ namespace IdentityService.Test
       result = await client.DeleteAsync($"/api/v1.0/identity/client/clientToDelete");
       result.EnsureSuccessStatusCode();
 
-      Assert.Equal(0, clientRepository.ListClients("clientToDelete").TotalCount);
+      Assert.Equal(0, clientRepository.ListClients(new TagFilter(), "clientToDelete").TotalCount);
     }
 
     [Fact]
@@ -101,7 +101,7 @@ namespace IdentityService.Test
       var result = await client.PostAsync($"/api/v1.0/identity/client/deleteList", uContent);
       Assert.True(result.IsSuccessStatusCode);
 
-      Assert.DoesNotContain(clientRepository.ListClients().Items, u => u.ClientId == "clientToDelete" || u.ClientId == "clientToDelete2" || u.ClientId == "clientToDelete3");
+      Assert.DoesNotContain(clientRepository.ListClients(new TagFilter()).Items, u => u.ClientId == "clientToDelete" || u.ClientId == "clientToDelete2" || u.ClientId == "clientToDelete3");
     }
 
     [Fact]
