@@ -9,6 +9,7 @@ namespace Identity.DBContext.Models
     public string? PublicKey { get; set; }
     public string DeviceIdentifier { get; set; } = string.Empty;
     public DateTime LastTokenRefreshDate { get; set; }
+    public DateTime RegistrationDate { get; set; }
     public ICollection<Group> Groups { get; set; } = new List<Group>();
   }
 }
