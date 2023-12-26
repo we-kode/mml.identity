@@ -42,6 +42,12 @@ namespace Identity.Infrastructure
         query = query.Where(c => c.Groups.Any(g => tagFilter.Groups.Contains(g.Id)));
       }
 
+      DateTime oldestDate = DateTime.UtcNow.Subtract(new TimeSpan(24,0,0));
+      if (tagFilter.OnlyNew)
+      {
+        query = query.Where(c => c.RegistrationDate >= oldestDate);
+      }
+
       var count = query.Count();
       var clients = query
         .OrderBy(app => app.DisplayName)
@@ -141,7 +147,8 @@ namespace Identity.Infrastructure
         Type = OpenIddictConstants.ClientTypes.Confidential,
         DisplayName = displayName,
         DeviceIdentifier = deviceIdentifier,
-        Groups = defaultGroups
+        Groups = defaultGroups,
+        RegistrationDate = DateTime.UtcNow,
       };
 
       context.Applications.Add(client);

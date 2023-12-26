@@ -13,6 +13,11 @@ namespace Identity.Contracts;
     /// </summary>
     public IList<Guid> Groups { get; set; }
 
+    /// <summary>
+    /// Show only new once.
+    /// </summary>
+    public bool OnlyNew {  get; set; }
+
     public TagFilter()
     {
       Groups = new List<Guid>();
