@@ -42,7 +42,7 @@ namespace Identity.Infrastructure
         query = query.Where(c => c.Groups.Any(g => tagFilter.Groups.Contains(g.Id)));
       }
 
-      DateTime oldestDate = DateTime.UtcNow.Subtract(new TimeSpan(24,0,0));
+      DateTime oldestDate = DateTime.UtcNow.Subtract(new TimeSpan(24, 0, 0));
       if (tagFilter.OnlyNew)
       {
         query = query.Where(c => c.RegistrationDate >= oldestDate);
@@ -253,6 +253,21 @@ namespace Identity.Infrastructure
         .ToList();
 
       return clients!;
+    }
+
+    public void Assign(List<string> clients, List<Guid> groups)
+    {
+      using var context = _contextFactory();
+      var cAssing = context.Applications
+        .Include(app => app.Groups)
+        .Where(app => !string.IsNullOrEmpty(app.ClientId) && clients.Contains(app.ClientId)).ToList();
+      var gAssign = context.Groups
+       .Where(g => groups.Contains(g.Id)).ToList();
+      foreach (var client in cAssing)
+      {
+        client.Groups = client.Groups.Where(cg => !gAssign.Any(ga => ga.Id == cg.Id)).Union(gAssign).ToArray();
+      }
+      context.SaveChanges();
     }
   }
 }

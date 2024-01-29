@@ -99,5 +99,12 @@ namespace Identity.Application.Contracts
     /// </summary>
     /// <param name="clientId">The id of the client to be updated.</param>
     void UpdateTokenRequestDate(string clientId);
+
+    /// <summary>
+    /// Assigns clients to groups.
+    /// </summary>
+    /// <param name="clients">Ids of clients.</param>
+    /// <param name="groups">Ids of groups.</param>
+    void Assign(List<string> clients, List<Guid> groups);
   }
 }

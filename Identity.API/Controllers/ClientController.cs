@@ -32,7 +32,7 @@ namespace Identity.Controllers
     private readonly IHubContext<RegisterClientHub> hubContext;
     private readonly ClientApplicationService _service;
     private readonly IMapper _mapper;
-    
+
     private readonly IConfiguration _configuration;
 
     public ClientController(IClientRepository clientRepository,
@@ -95,6 +95,18 @@ namespace Identity.Controllers
     }
 
     /// <summary>
+    /// Assigns clients to groups.
+    /// </summary>
+    /// <param name="ids">ids of the clients to be removed.</param>
+    [HttpPost("assign")]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
+    public IActionResult Assign([FromBody] AssignmentRequest request)
+    {
+      clientRepository.Assign(request.Items, request.Groups);
+      return Ok();
+    }
+
+    /// <summary>
     /// Deletes one existing client.
     /// </summary>
     /// <param name="id">id of the client to be removed.</param>
@@ -151,7 +163,8 @@ namespace Identity.Controllers
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
     public IActionResult GetConnectionSettings()
     {
-      return new JsonResult(new {
+      return new JsonResult(new
+      {
         ApiKey = _configuration.GetValue("APP_KEY", string.Empty)
       });
     }
@@ -165,7 +178,8 @@ namespace Identity.Controllers
     {
       var clientId = HttpContext.User.GetClaim(Claims.Subject) ?? "";
 
-      return new JsonResult(new {
+      return new JsonResult(new
+      {
         Registered = clientRepository.ClientExists(clientId)
       });
     }
