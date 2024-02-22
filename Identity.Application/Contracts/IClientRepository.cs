@@ -104,7 +104,15 @@ namespace Identity.Application.Contracts
     /// Assigns clients to groups.
     /// </summary>
     /// <param name="clients">Ids of clients.</param>
+    /// <param name="initGroups">The ids of the init selected groups.</param>
     /// <param name="groups">Ids of groups.</param>
-    void Assign(List<string> clients, List<Guid> groups);
+    void Assign(List<string> clients, List<Guid> initGroups, List<Guid> groups);
+    
+    /// <summary>
+    /// Loads assinged groups of given clients.
+    /// </summary>
+    /// <param name="clients">Clients groups should be laoded.</param>
+    /// <returns>Ids of assigned groups.</returns>
+    Groups GetAssignedGroups(List<string> clients);
   }
 }
