@@ -97,13 +97,24 @@ namespace Identity.Controllers
     /// <summary>
     /// Assigns clients to groups.
     /// </summary>
-    /// <param name="ids">ids of the clients to be removed.</param>
+    /// <param name="ids">ids of the clients to be assigned.</param>
     [HttpPost("assign")]
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
     public IActionResult Assign([FromBody] AssignmentRequest request)
     {
-      clientRepository.Assign(request.Items, request.Groups);
+      clientRepository.Assign(request.Items, request.InitGroups, request.Groups);
       return Ok();
+    }
+
+    /// <summary>
+    /// Loads selected groups
+    /// </summary>
+    /// <param name="ids">ids of the clients to load groups from.</param>
+    [HttpPost("assignedGroups")]
+    [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
+    public Groups AssignedGroups([FromBody] List<string> clients)
+    {
+      return clientRepository.GetAssignedGroups(clients);
     }
 
     /// <summary>

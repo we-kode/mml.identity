@@ -17,5 +17,10 @@ namespace Identity.Contracts
     /// Listz of groups to which the items should be assigned.
     /// </summary>
     public List<Guid> Groups { get; set; } = new List<Guid>();
+
+    /// <summary>
+    /// Initial assigned groups.
+    /// </summary>
+    public List<Guid> InitGroups { get; set; } = new List<Guid>();
   }
 }
