@@ -11,6 +11,8 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using DBGroup = Identity.DBContext.Models.Group;
+using System.Text.RegularExpressions;
+using AutoMapper;
 
 namespace Identity.Infrastructure
 {
@@ -18,14 +20,17 @@ namespace Identity.Infrastructure
   {
     private readonly Func<ApplicationDBContext> _contextFactory;
     private readonly IGroupRepository _groupRepository;
+    private readonly IMapper _mapper;
 
     public SqlClientRepository(
       Func<ApplicationDBContext> contextFactory,
-      IGroupRepository groupRepository
+      IGroupRepository groupRepository,
+      IMapper mapper
     )
     {
       _contextFactory = contextFactory;
       _groupRepository = groupRepository;
+      _mapper = mapper;
     }
 
     public Clients ListClients(TagFilter tagFilter, string? filter, int skip, int take)
@@ -255,19 +260,34 @@ namespace Identity.Infrastructure
       return clients!;
     }
 
-    public void Assign(List<string> clients, List<Guid> groups)
+    public void Assign(List<string> clients, List<Guid> initGroups, List<Guid> groups)
     {
       using var context = _contextFactory();
       var cAssing = context.Applications
         .Include(app => app.Groups)
         .Where(app => !string.IsNullOrEmpty(app.ClientId) && clients.Contains(app.ClientId)).ToList();
       var gAssign = context.Groups
-       .Where(g => groups.Contains(g.Id)).ToList();
+       .Where(g => groups.Contains(g.Id) || initGroups.Contains(g.Id));
       foreach (var client in cAssing)
       {
-        client.Groups = client.Groups.Where(cg => !gAssign.Any(ga => ga.Id == cg.Id)).Union(gAssign).ToArray();
+        client.Groups = gAssign.ToList();
       }
       context.SaveChanges();
+    }
+
+    public Groups GetAssignedGroups(List<string> clients)
+    {
+      using var context = _contextFactory();
+      var groups = context.Groups
+        .Where(g => g.Clients.Any(c => !string.IsNullOrEmpty(c.ClientId) && clients.Contains(c.ClientId)));
+
+      var count = groups.Count();
+
+      return new Groups
+      {
+        TotalCount = count,
+        Items = _mapper.ProjectTo<Application.Models.Group>(groups).ToList(),
+      };
     }
   }
 }
