@@ -267,10 +267,10 @@ namespace Identity.Infrastructure
         .Include(app => app.Groups)
         .Where(app => !string.IsNullOrEmpty(app.ClientId) && clients.Contains(app.ClientId)).ToList();
       var gAssign = context.Groups
-       .Where(g => groups.Contains(g.Id) || initGroups.Contains(g.Id));
+       .Where(g => groups.Contains(g.Id));
       foreach (var client in cAssing)
       {
-        client.Groups = gAssign.ToList();
+        client.Groups = client.Groups.Where(cg => initGroups.Contains(cg.Id) && !groups.Contains(cg.Id)).Union(gAssign).ToList();
       }
       context.SaveChanges();
     }
