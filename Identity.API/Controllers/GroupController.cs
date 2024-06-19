@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Identity.Application.Contracts;
 using Identity.Application.IdentityConstants;
 using Identity.Application.Models;

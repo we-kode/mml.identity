@@ -149,7 +149,7 @@ namespace Identity.Infrastructure
           OpenIddictConstants.Permissions.Endpoints.Token,
           OpenIddictConstants.Permissions.GrantTypes.ClientCredentials
         }),
-        Type = OpenIddictConstants.ClientTypes.Confidential,
+        ClientType = OpenIddictConstants.ClientTypes.Confidential,
         DisplayName = displayName,
         DeviceIdentifier = deviceIdentifier,
         Groups = defaultGroups,
@@ -182,7 +182,7 @@ namespace Identity.Infrastructure
           OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
           OpenIddictConstants.Scopes.OfflineAccess,
         }),
-        Type = OpenIddictConstants.ClientTypes.Public
+        ClientType = OpenIddictConstants.ClientTypes.Public
       };
       context.Applications.Add(client);
       await context.SaveChangesAsync().ConfigureAwait(false);

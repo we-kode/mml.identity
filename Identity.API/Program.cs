@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using AutoMapper;
