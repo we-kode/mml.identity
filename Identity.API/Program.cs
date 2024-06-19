@@ -17,7 +17,6 @@ using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -177,10 +176,10 @@ builder.Services.AddOpenIddict()
       options.AllowClientCredentialsFlow();
 
       options.SetIssuer(new Uri(builder.Configuration["OpenId:Issuer"]));
-      options.SetTokenEndpointUris("/api/v1.0/identity/connect/token")
-             .SetUserinfoEndpointUris("/api/v1.0/identity/connect/userinfo")
-             .SetLogoutEndpointUris("/api/v1.0/identity/connect/logout")
-             .SetIntrospectionEndpointUris("/api/v1.0/identity/connect/introspect");
+      options.SetTokenEndpointUris("api/v1.0/identity/connect/token")
+             .SetUserinfoEndpointUris("api/v1.0/identity/connect/userinfo")
+             .SetLogoutEndpointUris("api/v1.0/identity/connect/logout")
+             .SetIntrospectionEndpointUris("api/v1.0/identity/connect/introspect");
 
       options.UseReferenceAccessTokens();
       options.UseReferenceRefreshTokens();

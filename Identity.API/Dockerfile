@@ -1,10 +1,10 @@
-FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 ARG USERNAME=mml
 ARG UID
 ARG GID
-RUN groupadd --gid $GID $USERNAME \
-    && useradd --uid $UID --gid $GID -m $USERNAME
-USER $USERNAME
+#RUN groupadd --gid $GID $USERNAME \
+#    && useradd --uid $UID --gid $GID -m $USERNAME
+#USER $USERNAME
 WORKDIR /app
 EXPOSE 5051
 ENV ASPNETCORE_ENVIRONMENT=Release
@@ -13,7 +13,7 @@ RUN echo 'alias create="dotnet /app/cli/Identity.CLI.dll"' >> ~/.bashrc && \
     echo 'alias admin-list="dotnet /app/cli/Identity.CLI.dll -al"' >> ~/.bashrc && \
     echo 'alias admin-remove="dotnet /app/cli/Identity.CLI.dll -ad"' >> ~/.bashrc
 
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG DOT_NET_BUILD_CONFIG=Release
 WORKDIR /src
 COPY ["Identity.API/Identity.csproj", "Identity.API/"]
