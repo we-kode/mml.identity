@@ -11,6 +11,8 @@ using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
 using System;
+using System.Collections.Immutable;
+using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -65,15 +67,25 @@ namespace Identity.Controllers
             Claims.Name,
             Claims.Role);
 
-        identity.AddClaim(Claims.Subject, user.Id.ToString(), Destinations.AccessToken);
-        identity.AddClaim(Claims.Name, user.Name, Destinations.AccessToken);
+        identity.SetClaim(Claims.Subject, user.Id.ToString());
+        identity.SetClaim(Claims.Name, user.Name);
         if (user.IsAdmin)
         {
-          identity.AddClaim(Claims.Role, Roles.Admin, Destinations.AccessToken);
+          identity.AddClaim(Claims.Role, Roles.Admin);
         }
         var claimsPrincipal = new ClaimsPrincipal(identity);
         claimsPrincipal.SetScopes(request.GetScopes());
         claimsPrincipal.SetResources(_clientRepository.GetApiClients());
+        claimsPrincipal.SetDestinations(static claim => claim.Type switch
+        {
+          // Allow the "name" claim to be stored in both the access and identity tokens
+          // when the "profile" scope was granted (by calling principal.SetScopes(...)).
+          Claims.Name when claim.Subject.HasScope(OpenIddictConstants.Scopes.Profile)
+              => [Destinations.AccessToken, Destinations.IdentityToken],
+
+          // Otherwise, only store the claim in the access tokens.
+          _ => [Destinations.AccessToken]
+        });
 
         return SignIn(claimsPrincipal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
       }
@@ -110,7 +122,7 @@ namespace Identity.Controllers
       {
 
         var client = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, null, Claims.Role);
-        client.AddClaim(Claims.Subject, request.ClientId!, Destinations.AccessToken);
+        client.SetClaim(Claims.Subject, request.ClientId!);
 
         if (string.IsNullOrEmpty(request.CodeChallenge))
         {
@@ -138,17 +150,24 @@ namespace Identity.Controllers
           return Unauthorized();
         }
 
-        client.AddClaim(Claims.Role, Roles.Client, Destinations.AccessToken);
+        client.SetClaim(Claims.Role, Roles.Client);
 
         var dbClient = _clientRepository.GetClient(request.ClientId!);
-
-        foreach (var group in dbClient.Groups) {
-          client.AddClaim(IdentityClaims.ClientGroup, group.Id.ToString(), Destinations.AccessToken);
-        }
+        client.SetClaims(IdentityClaims.ClientGroup, dbClient.Groups.Select(g => g.Id.ToString()).ToImmutableArray());
 
         var claimsPrincipal = new ClaimsPrincipal(client);
         claimsPrincipal.SetScopes(request.GetScopes());
         claimsPrincipal.SetResources(_clientRepository.GetApiClients());
+        claimsPrincipal.SetDestinations(static claim => claim.Type switch
+        {
+          // Allow the "name" claim to be stored in both the access and identity tokens
+          // when the "profile" scope was granted (by calling principal.SetScopes(...)).
+          Claims.Name when claim.Subject.HasScope(OpenIddictConstants.Scopes.Profile)
+              => [Destinations.AccessToken, Destinations.IdentityToken],
+
+          // Otherwise, only store the claim in the access tokens.
+          _ => [Destinations.AccessToken]
+        });
 
         _clientRepository.UpdateTokenRequestDate(request.ClientId!);
         return SignIn(claimsPrincipal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
