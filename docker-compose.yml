@@ -12,8 +12,8 @@ services:
     restart: always
     user: ${UID}:${GUID}
     volumes:
-      - ${VOL_CERTS}:/etc/ssl/certs:ro
-      - ${APPSETTINGS}:/configs/appsettings.json:ro
+      - ${VOL_CERTS}:/etc/ssl/certs:ro,z
+      - ${APPSETTINGS}:/configs/appsettings.json:ro,Z
       - /etc/localtime:/etc/localtime:ro
     networks:
       - wekode.mml
