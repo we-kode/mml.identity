@@ -11,7 +11,6 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using DBGroup = Identity.DBContext.Models.Group;
-using System.Text.RegularExpressions;
 using AutoMapper;
 
 namespace Identity.Infrastructure

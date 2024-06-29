@@ -79,27 +79,43 @@ builder.Services.AddCors(options =>
              .AllowAnyHeader();
   });
 });
-builder.Services.AddMassTransit(mt =>
+
+if (!builder.Environment.IsEnvironment("Test"))
 {
-  mt.UsingRabbitMq((context, cfg) =>
+  builder.Services.AddMassTransit(mt =>
   {
-    cfg.Host(builder.Configuration["MassTransit:Host"], builder.Configuration["MassTransit:VirtualHost"], h =>
+    mt.UsingRabbitMq((context, cfg) =>
     {
+      cfg.Host(builder.Configuration["MassTransit:Host"], builder.Configuration["MassTransit:VirtualHost"], h =>
+      {
 
-      h.Username(builder.Configuration["MassTransit:User"] ?? throw new ArgumentNullException("MassTransit:User"));
-      h.Password(builder.Configuration["MassTransit:Password"] ?? throw new ArgumentNullException("MassTransit:Password"));
+        h.Username(builder.Configuration["MassTransit:User"] ?? throw new ArgumentNullException("MassTransit:User"));
+        h.Password(builder.Configuration["MassTransit:Password"] ?? throw new ArgumentNullException("MassTransit:Password"));
+      });
+
+      cfg.ConfigureEndpoints(context);
     });
-
-    cfg.ConfigureEndpoints(context);
   });
-});
-builder.Services.AddOptions<MassTransitHostOptions>()
+  builder.Services.AddOptions<MassTransitHostOptions>()
   .Configure(options =>
   {
     options.WaitUntilStarted = bool.Parse(builder.Configuration["MassTransit:WaitUntilStarted"] ?? "False");
     options.StartTimeout = TimeSpan.FromSeconds(double.Parse(builder.Configuration["MassTransit:StartTimeoutSeconds"] ?? "60"));
     options.StopTimeout = TimeSpan.FromSeconds(double.Parse(builder.Configuration["MassTransit:StopTimeoutSeconds"] ?? "60"));
   });
+}
+else
+{
+  builder.Services.AddMassTransitTestHarness(x =>
+   {
+     x.AddDelayedMessageScheduler();
+     x.UsingInMemory((context, cfg) =>
+     {
+       cfg.UseDelayedMessageScheduler();
+       cfg.ConfigureEndpoints(context);
+     });
+   });
+}
 #endregion
 
 #region localizations

@@ -75,16 +75,16 @@ namespace IdentityService.Test
                 manager.CreateAsync(oAuthCLient).GetAwaiter().GetResult();
               }
 
-              Func<ApplicationDBContext> factory = () =>
+              ApplicationDBContext factory()
               {
                 var optionsBuilder = new DbContextOptionsBuilder<ApplicationDBContext>();
                 optionsBuilder.UseInMemoryDatabase(memoryDBName);
                 optionsBuilder.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
 
                 return new ApplicationDBContext(optionsBuilder.Options);
-              };
+              }
 
-              services.AddSingleton(provider => factory);
+              services.AddSingleton(provider => (Func<ApplicationDBContext>)factory);
             });
           });
     }
