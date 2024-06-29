@@ -32,6 +32,7 @@ using static OpenIddict.Server.OpenIddictServerEvents;
 using DbGroup = Identity.DBContext.Models.Group;
 using Group = Identity.Application.Models.Group;
 
+#pragma warning disable CA2208 // Instantiate argument exceptions correctly
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration
@@ -84,8 +85,9 @@ builder.Services.AddMassTransit(mt =>
   {
     cfg.Host(builder.Configuration["MassTransit:Host"], builder.Configuration["MassTransit:VirtualHost"], h =>
     {
-      h.Username(builder.Configuration["MassTransit:User"]);
-      h.Password(builder.Configuration["MassTransit:Password"]);
+
+      h.Username(builder.Configuration["MassTransit:User"] ?? throw new ArgumentNullException("MassTransit:User"));
+      h.Password(builder.Configuration["MassTransit:Password"] ?? throw new ArgumentNullException("MassTransit:Password"));
     });
 
     cfg.ConfigureEndpoints(context);
@@ -94,9 +96,9 @@ builder.Services.AddMassTransit(mt =>
 builder.Services.AddOptions<MassTransitHostOptions>()
   .Configure(options =>
   {
-    options.WaitUntilStarted = bool.Parse(builder.Configuration["MassTransit:WaitUntilStarted"]);
-    options.StartTimeout = TimeSpan.FromSeconds(double.Parse(builder.Configuration["MassTransit:StartTimeoutSeconds"]));
-    options.StopTimeout = TimeSpan.FromSeconds(double.Parse(builder.Configuration["MassTransit:StopTimeoutSeconds"]));
+    options.WaitUntilStarted = bool.Parse(builder.Configuration["MassTransit:WaitUntilStarted"] ?? "False");
+    options.StartTimeout = TimeSpan.FromSeconds(double.Parse(builder.Configuration["MassTransit:StartTimeoutSeconds"] ?? "60"));
+    options.StopTimeout = TimeSpan.FromSeconds(double.Parse(builder.Configuration["MassTransit:StopTimeoutSeconds"] ?? "60"));
   });
 #endregion
 
@@ -121,21 +123,20 @@ builder.Services.AddIdentity<IdentityUser<long>, IdentityRole<long>>(options =>
       options.Password.RequireDigit = false;
       options.Password.RequireLowercase = false;
       options.Password.RequireUppercase = false;
-      options.ClaimsIdentity.EmailClaimType = OpenIddictConstants.Claims.Email;
-      options.ClaimsIdentity.UserIdClaimType = OpenIddictConstants.Claims.Subject;
-      options.ClaimsIdentity.RoleClaimType = OpenIddictConstants.Claims.Role;
+      options.ClaimsIdentity.EmailClaimType = Claims.Email;
+      options.ClaimsIdentity.UserIdClaimType = Claims.Subject;
+      options.ClaimsIdentity.RoleClaimType = Claims.Role;
     })
     .AddEntityFrameworkStores<ApplicationDBContext>()
     .AddDefaultTokenProviders();
 builder.Services.Configure<DataProtectionTokenProviderOptions>(o =>
-       o.TokenLifespan = TimeSpan.FromMinutes(int.Parse(builder.Configuration["OpenId:TokenLifespanMinutes"])));
+       o.TokenLifespan = TimeSpan.FromMinutes(int.Parse(builder.Configuration["OpenId:TokenLifespanMinutes"] ?? "60")));
 #endregion
 
 #region authentication
 builder.Services.AddQuartz(options =>
 {
   options.SchedulerName = $"QuartzScheduler-{Guid.NewGuid()}";
-  options.UseMicrosoftDependencyInjectionJobFactory();
   options.UseSimpleTypeLoader();
   options.UseInMemoryStore();
 });
@@ -144,29 +145,27 @@ builder.Services.AddAuthentication(options =>
 {
   options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
 });
-builder.Services.AddAuthorization(option =>
-{
-  option.AddPolicy(Identity.Application.IdentityConstants.Roles.Admin, policy =>
+builder.Services.AddAuthorizationBuilder()
+  .AddPolicy(Identity.Application.IdentityConstants.Roles.Admin, policy =>
   {
     policy.AddAuthenticationSchemes(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
     policy.RequireAuthenticatedUser();
     policy.RequireClaim(OpenIddictConstants.Claims.Role, Identity.Application.IdentityConstants.Roles.Admin);
-  });
-  option.AddPolicy(Identity.Application.IdentityConstants.Roles.Client, policy =>
+  })
+  .AddPolicy(Identity.Application.IdentityConstants.Roles.Client, policy =>
   {
     policy.AddAuthenticationSchemes(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
     policy.RequireAuthenticatedUser();
     policy.RequireClaim(OpenIddictConstants.Claims.Role, Identity.Application.IdentityConstants.Roles.Client);
   });
-});
 builder.Services.AddOpenIddict()
     .AddCore(options =>
     {
       options.UseEntityFrameworkCore().UseDbContext<ApplicationDBContext>().ReplaceDefaultEntities<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
       options.UseQuartz(options =>
       {
-        options.SetMinimumTokenLifespan(TimeSpan.FromDays(int.Parse(builder.Configuration["OpenId:CleanOrphanTokenDays"])));
-        options.SetMinimumAuthorizationLifespan(TimeSpan.FromDays(int.Parse(builder.Configuration["OpenId:CleanOrphanTokenDays"])));
+        options.SetMinimumTokenLifespan(TimeSpan.FromDays(int.Parse(builder.Configuration["OpenId:CleanOrphanTokenDays"] ?? "1")));
+        options.SetMinimumAuthorizationLifespan(TimeSpan.FromDays(int.Parse(builder.Configuration["OpenId:CleanOrphanTokenDays"] ?? "1")));
       });
     })
     .AddServer(options =>
@@ -175,7 +174,7 @@ builder.Services.AddOpenIddict()
       options.AllowRefreshTokenFlow();
       options.AllowClientCredentialsFlow();
 
-      options.SetIssuer(new Uri(builder.Configuration["OpenId:Issuer"]));
+      options.SetIssuer(new Uri(builder.Configuration["OpenId:Issuer"] ?? throw new ArgumentNullException("OpenId:Issuer")));
       options.SetTokenEndpointUris("api/v1.0/identity/connect/token")
              .SetUserinfoEndpointUris("api/v1.0/identity/connect/userinfo")
              .SetLogoutEndpointUris("api/v1.0/identity/connect/logout")
@@ -187,9 +186,9 @@ builder.Services.AddOpenIddict()
       options.AddEventHandler<ApplyTokenResponseContext>(builder =>
             builder.UseSingletonHandler<ApplyTokenResponseHandler>());
 
-      options.SetAccessTokenLifetime(TimeSpan.FromMinutes(int.Parse(builder.Configuration["OpenId:AccessTokenLifetimeMinutes"])));
-      options.SetRefreshTokenLifetime(TimeSpan.FromMinutes(int.Parse(builder.Configuration["OpenId:RefreshTokenLifetimeMinutes"])));
-      options.SetRefreshTokenReuseLeeway(TimeSpan.FromSeconds(int.Parse(builder.Configuration["OpenId:RefreshTokenReuseLeewaySeconds"])));
+      options.SetAccessTokenLifetime(TimeSpan.FromMinutes(int.Parse(builder.Configuration["OpenId:AccessTokenLifetimeMinutes"] ?? "60")));
+      options.SetRefreshTokenLifetime(TimeSpan.FromMinutes(int.Parse(builder.Configuration["OpenId:RefreshTokenLifetimeMinutes"] ?? "15")));
+      options.SetRefreshTokenReuseLeeway(TimeSpan.FromSeconds(int.Parse(builder.Configuration["OpenId:RefreshTokenReuseLeewaySeconds"] ?? "60")));
 
       if (builder.Environment.IsEnvironment("Test"))
       {
@@ -198,8 +197,8 @@ builder.Services.AddOpenIddict()
       }
       else
       {
-        options.AddSigningCertificate(new System.Security.Cryptography.X509Certificates.X509Certificate2(builder.Configuration["OpenId:SigningCert"]))
-               .AddEncryptionCertificate(new System.Security.Cryptography.X509Certificates.X509Certificate2(builder.Configuration["OpenId:EncryptionCert"]));
+        options.AddSigningCertificate(new System.Security.Cryptography.X509Certificates.X509Certificate2(builder.Configuration["OpenId:SigningCert"] ?? throw new ArgumentNullException("OpenId:SigningCert")))
+               .AddEncryptionCertificate(new System.Security.Cryptography.X509Certificates.X509Certificate2(builder.Configuration["OpenId:EncryptionCert"] ?? throw new ArgumentNullException("OpenId:EncryptionCert")));
       }
 
       var openidBuilder = options.UseAspNetCore()
@@ -236,14 +235,14 @@ builder.Host.ConfigureContainer<ContainerBuilder>(cBuilder =>
 
   if (!builder.Environment.IsEnvironment("Test"))
   {
-    Func<ApplicationDBContext> factory = () =>
+    ApplicationDBContext factory()
     {
       var optionsBuilder = new DbContextOptionsBuilder<ApplicationDBContext>();
       optionsBuilder.UseNpgsql(builder.Configuration.GetConnectionString("IdentityConnection"));
       optionsBuilder.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
 
       return new ApplicationDBContext(optionsBuilder.Options);
-    };
+    }
 
     cBuilder.RegisterInstance(factory);
   }
@@ -272,8 +271,8 @@ builder.WebHost.ConfigureKestrel(options =>
 {
   options.ListenAnyIP(5051, listenOptions =>
   {
-    var cert = builder.Configuration["TLS:Cert"];
-    var pwd = builder.Configuration["TLS:Password"];
+    var cert = builder.Configuration["TLS:Cert"] ?? throw new ArgumentNullException("TLS:Cert");
+    var pwd = builder.Configuration["TLS:Password"] ?? throw new ArgumentNullException("TLS:Password");
     listenOptions.UseHttps(cert, pwd);
   });
 });
@@ -320,11 +319,8 @@ app.UseRouting();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseEndpoints(endpoints =>
-{
-  endpoints.MapControllers();
-  endpoints.MapHub<RegisterClientHub>("/hub/client");
-});
+app.MapControllers();
+app.MapHub<RegisterClientHub>("/hub/client");
 #endregion
 
 // Create api clients if not exist
@@ -335,7 +331,7 @@ foreach (IConfigurationSection apiClient in apiClientsSection.GetChildren())
 {
   var id = apiClient.GetValue<string>("ClientId");
   var secret = apiClient.GetValue<string>("ClientSecret");
-  if (await manager.FindByClientIdAsync(id) is null)
+  if (await manager.FindByClientIdAsync(id!) is null)
   {
     await manager.CreateAsync(new OpenIddictApplicationDescriptor
     {
@@ -352,3 +348,4 @@ foreach (IConfigurationSection apiClient in apiClientsSection.GetChildren())
 app.Run();
 
 public partial class Program { }
+#pragma warning restore CA2208 // Instantiate argument exceptions correctly
