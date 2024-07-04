@@ -61,7 +61,7 @@ namespace Identity.Controllers
         identity.SetClaim(Claims.Name, user.Name);
         if (user.IsAdmin)
         {
-          identity.AddClaim(Claims.Role, Roles.Admin);
+          identity.SetClaim(Claims.Role, Roles.Admin);
         }
         var claimsPrincipal = new ClaimsPrincipal(identity);
         claimsPrincipal.SetScopes(request.GetScopes());
