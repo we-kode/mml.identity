@@ -16,6 +16,7 @@ using ScottBrady91.AspNetCore.Identity;
 using System;
 using System.Threading.Tasks;
 
+#pragma warning disable CA2208 // Instantiate argument exceptions correctly
 namespace Identity.CLI
 {
   public class Program
@@ -53,14 +54,15 @@ namespace Identity.CLI
             })
                 .AddEntityFrameworkStores<ApplicationDBContext>()
                 .AddDefaultTokenProviders();
-                
-            services.AddMassTransit(mt => 
+
+            services.AddMassTransit(mt =>
             {
-              mt.UsingRabbitMq((context, cfg) => 
+              mt.UsingRabbitMq((context, cfg) =>
               {
-                cfg.Host(config["MassTransit:Host"], config["MassTransit:VirtualHost"], h => {
-                  h.Username(config["MassTransit:User"]);
-                  h.Password(config["MassTransit:Password"]);
+                cfg.Host(config["MassTransit:Host"], config["MassTransit:VirtualHost"], h =>
+                {
+                  h.Username(config["MassTransit:User"] ?? throw new ArgumentNullException("MassTransit:User"));
+                  h.Password(config["MassTransit:Password"] ?? throw new ArgumentNullException("MassTransit:Password"));
                 });
 
                 cfg.ConfigureEndpoints(context);
@@ -69,9 +71,9 @@ namespace Identity.CLI
             services.AddOptions<MassTransitHostOptions>()
               .Configure(options =>
               {
-                options.WaitUntilStarted = bool.Parse(config["MassTransit:WaitUntilStarted"]);
-                options.StartTimeout = TimeSpan.FromSeconds(double.Parse(config["MassTransit:StartTimeoutSeconds"]));
-                options.StopTimeout = TimeSpan.FromSeconds(double.Parse(config["MassTransit:StopTimeoutSeconds"]));
+                options.WaitUntilStarted = bool.Parse(config["MassTransit:WaitUntilStarted"] ?? "False");
+                options.StartTimeout = TimeSpan.FromSeconds(double.Parse(config["MassTransit:StartTimeoutSeconds"] ?? "60"));
+                options.StopTimeout = TimeSpan.FromSeconds(double.Parse(config["MassTransit:StopTimeoutSeconds"] ?? "60"));
               });
           })
           .ConfigureContainer<ContainerBuilder>((context, cBuilder) =>
@@ -83,12 +85,12 @@ namespace Identity.CLI
             cBuilder.RegisterType<SqlIdentityRepository>().AsImplementedInterfaces();
             cBuilder.RegisterType<SqlClientRepository>().AsImplementedInterfaces();
 
-            Func<ApplicationDBContext> factory = () =>
+            ApplicationDBContext factory()
             {
               var optionsBuilder = new DbContextOptionsBuilder<ApplicationDBContext>();
               optionsBuilder.UseNpgsql(config.GetConnectionString("IdentityConnection"));
               return new ApplicationDBContext(optionsBuilder.Options);
-            };
+            }
 
             cBuilder.RegisterInstance(factory);
 
@@ -112,3 +114,4 @@ namespace Identity.CLI
     }
   }
 }
+#pragma warning restore CA2208 // Instantiate argument exceptions correctly

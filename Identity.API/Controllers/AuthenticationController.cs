@@ -11,6 +11,8 @@ using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
 using System;
+using System.Collections.Immutable;
+using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -21,18 +23,8 @@ namespace Identity.Controllers
 {
   [Route("/api/v{version:apiVersion}/identity/connect")]
   [ApiController]
-  public class AuthenticationController : Controller
+  public class AuthenticationController(IIdentityRepository identityRepository, IClientRepository clientRepository, ApplicationService applicationService) : Controller
   {
-    private readonly IIdentityRepository _identityRepository;
-    private readonly IClientRepository _clientRepository;
-    private readonly ApplicationService _applicationService;
-
-    public AuthenticationController(IIdentityRepository identityRepository, IClientRepository clientRepository, ApplicationService applicationService)
-    {
-      _identityRepository = identityRepository;
-      _clientRepository = clientRepository;
-      _applicationService = applicationService;
-    }
 
     /// <summary>
     /// Handles the authentication attempts of one user
@@ -53,27 +45,37 @@ namespace Identity.Controllers
         }
 
         // login user and return token
-        if (!await _identityRepository.Validate(request.Username, request.Password))
+        if (!await identityRepository.Validate(request.Username, request.Password))
         {
           return Unauthorized();
         }
 
-        var user = await _identityRepository.GetUser(request.Username).ConfigureAwait(false);
+        var user = await identityRepository.GetUser(request.Username).ConfigureAwait(false);
 
         var identity = new ClaimsIdentity(
             OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
             Claims.Name,
             Claims.Role);
 
-        identity.AddClaim(Claims.Subject, user.Id.ToString(), Destinations.AccessToken);
-        identity.AddClaim(Claims.Name, user.Name, Destinations.AccessToken);
+        identity.SetClaim(Claims.Subject, user.Id.ToString());
+        identity.SetClaim(Claims.Name, user.Name);
         if (user.IsAdmin)
         {
-          identity.AddClaim(Claims.Role, Roles.Admin, Destinations.AccessToken);
+          identity.SetClaim(Claims.Role, Roles.Admin);
         }
         var claimsPrincipal = new ClaimsPrincipal(identity);
         claimsPrincipal.SetScopes(request.GetScopes());
-        claimsPrincipal.SetResources(_clientRepository.GetApiClients());
+        claimsPrincipal.SetResources(clientRepository.GetApiClients());
+        claimsPrincipal.SetDestinations(static claim => claim.Type switch
+        {
+          // Allow the "name" claim to be stored in both the access and identity tokens
+          // when the "profile" scope was granted (by calling principal.SetScopes(...)).
+          Claims.Name when claim.Subject!.HasScope(OpenIddictConstants.Scopes.Profile)
+              => [Destinations.AccessToken, Destinations.IdentityToken],
+
+          // Otherwise, only store the claim in the access tokens.
+          _ => [Destinations.AccessToken]
+        });
 
         return SignIn(claimsPrincipal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
       }
@@ -86,12 +88,12 @@ namespace Identity.Controllers
         var userId = principal.GetClaim(Claims.Subject)
                 ?? throw new InvalidOperationException();
 
-        if (!await _identityRepository.UserExists(long.Parse(userId)).ConfigureAwait(false))
+        if (!await identityRepository.UserExists(long.Parse(userId)).ConfigureAwait(false))
         {
           return Unauthorized();
         }
 
-        if (!await _identityRepository.IsActive(long.Parse(userId)).ConfigureAwait(false))
+        if (!await identityRepository.IsActive(long.Parse(userId)).ConfigureAwait(false))
         {
           return Unauthorized();
         }
@@ -100,7 +102,7 @@ namespace Identity.Controllers
         {
           claim.SetDestinations(claim.GetDestinations(principal));
         }
-        principal.SetResources(_clientRepository.GetApiClients());
+        principal.SetResources(clientRepository.GetApiClients());
 
         // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
         return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
@@ -110,7 +112,7 @@ namespace Identity.Controllers
       {
 
         var client = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, null, Claims.Role);
-        client.AddClaim(Claims.Subject, request.ClientId!, Destinations.AccessToken);
+        client.SetClaim(Claims.Subject, request.ClientId!);
 
         if (string.IsNullOrEmpty(request.CodeChallenge))
         {
@@ -118,7 +120,7 @@ namespace Identity.Controllers
         }
 
         // check if signature is valid with public key saved for client id
-        var pubKeyStringB64 = _clientRepository.GetPublicKey(request.ClientId!);
+        var pubKeyStringB64 = clientRepository.GetPublicKey(request.ClientId!);
         if (string.IsNullOrEmpty(pubKeyStringB64))
         {
           return Unauthorized();
@@ -138,19 +140,26 @@ namespace Identity.Controllers
           return Unauthorized();
         }
 
-        client.AddClaim(Claims.Role, Roles.Client, Destinations.AccessToken);
+        client.SetClaim(Claims.Role, Roles.Client);
 
-        var dbClient = _clientRepository.GetClient(request.ClientId!);
-
-        foreach (var group in dbClient.Groups) {
-          client.AddClaim(IdentityClaims.ClientGroup, group.Id.ToString(), Destinations.AccessToken);
-        }
+        var dbClient = clientRepository.GetClient(request.ClientId!);
+        client.SetClaims(IdentityClaims.ClientGroup, dbClient.Groups.Select(g => g.Id.ToString()).ToImmutableArray());
 
         var claimsPrincipal = new ClaimsPrincipal(client);
         claimsPrincipal.SetScopes(request.GetScopes());
-        claimsPrincipal.SetResources(_clientRepository.GetApiClients());
+        claimsPrincipal.SetResources(clientRepository.GetApiClients());
+        claimsPrincipal.SetDestinations(static claim => claim.Type switch
+        {
+          // Allow the "name" claim to be stored in both the access and identity tokens
+          // when the "profile" scope was granted (by calling principal.SetScopes(...)).
+          Claims.Name when claim.Subject!.HasScope(OpenIddictConstants.Scopes.Profile)
+              => [Destinations.AccessToken, Destinations.IdentityToken],
 
-        _clientRepository.UpdateTokenRequestDate(request.ClientId!);
+          // Otherwise, only store the claim in the access tokens.
+          _ => [Destinations.AccessToken]
+        });
+
+        clientRepository.UpdateTokenRequestDate(request.ClientId!);
         return SignIn(claimsPrincipal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
       }
 
@@ -166,12 +175,12 @@ namespace Identity.Controllers
     public async Task<IActionResult> UserInfo()
     {
       var userIdClaim = HttpContext.User.GetClaim(Claims.Subject);
-      if (!long.TryParse(userIdClaim, out var userId) || !await _identityRepository.UserExists(userId))
+      if (!long.TryParse(userIdClaim, out var userId) || !await identityRepository.UserExists(userId))
       {
         return BadRequest();
       }
 
-      var user = await _identityRepository.GetUser(userId).ConfigureAwait(false);
+      var user = await identityRepository.GetUser(userId).ConfigureAwait(false);
       return Ok(user);
     }
 
@@ -184,12 +193,12 @@ namespace Identity.Controllers
     public async Task<IActionResult> Logout()
     {
       var userIdClaim = HttpContext.User.GetClaim(Claims.Subject);
-      if (!long.TryParse(userIdClaim, out var userId) || !await _identityRepository.UserExists(userId))
+      if (!long.TryParse(userIdClaim, out var userId) || !await identityRepository.UserExists(userId))
       {
         return SignOut(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
       }
 
-      await _applicationService.RevokeTokens(userId).ConfigureAwait(false);
+      await applicationService.RevokeTokens(userId).ConfigureAwait(false);
 
       return SignOut(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
     }

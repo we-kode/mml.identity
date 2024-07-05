@@ -26,14 +26,14 @@ namespace IdentityService.Test
       application = TestApplication.Build();
       client = application.CreateClient();
       client.DefaultRequestHeaders.Add("App-Key", "abc");
-      _Authorize().GetAwaiter().GetResult();
+      Authorize().GetAwaiter().GetResult();
     }
 
     [Theory]
-    [InlineData("test", null, false, HttpStatusCode.BadRequest)]
+    [InlineData("test", "", false, HttpStatusCode.BadRequest)]
     [InlineData("test@newuser.test", "123456789012", false, HttpStatusCode.Created)]
     [InlineData("test@newuser.test", "123456789012", true, HttpStatusCode.Unauthorized)]
-    public async void Test_CRUD_One_User(string userName, string password, bool unauthorized, HttpStatusCode resultCode)
+    public async Task Test_CRUD_One_User(string userName, string password, bool unauthorized, HttpStatusCode resultCode)
     {
       // create
       if (unauthorized)
@@ -49,11 +49,11 @@ namespace IdentityService.Test
       {
         // read
         var createdUser = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync());
-        var createdUserId = createdUser.Id;
+        var createdUserId = createdUser!.Id;
         result = await client.GetAsync($"/api/v1.0/identity/user/{createdUserId!}");
         var userResult = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync());
         Assert.True(result.IsSuccessStatusCode);
-        Assert.Equal(createdUserId, userResult.Id);
+        Assert.Equal(createdUserId, userResult!.Id);
 
         // unique constraint
         result = await client.PostAsync("/api/v1.0/identity/user/create", content);
@@ -67,7 +67,7 @@ namespace IdentityService.Test
         result = await client.GetAsync($"/api/v1.0/identity/user/{createdUserId}");
         userResult = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync());
         Assert.True(result.IsSuccessStatusCode);
-        Assert.Equal($"{userName}abc", userResult.Name);
+        Assert.Equal($"{userName}abc", userResult!.Name);
         Assert.True(userResult.IsAdmin);
 
         //Delete
@@ -80,26 +80,26 @@ namespace IdentityService.Test
 
         var serviceScope = application.Services.CreateScope();
         var userManager = serviceScope.ServiceProvider.GetRequiredService<UserManager<IdentityUser<long>>>();
-        var adminUser = userManager.FindByIdAsync(1.ToString()).GetAwaiter().GetResult();
-        userManager.RemoveFromRoleAsync(adminUser, Identity.Application.IdentityConstants.Roles.Admin).GetAwaiter().GetResult();
-        _Authorize().GetAwaiter().GetResult();
+        var adminUser = await userManager.FindByIdAsync(1.ToString());
+        await (userManager.RemoveFromRoleAsync(adminUser!, Identity.Application.IdentityConstants.Roles.Admin));
+        await Authorize();
         result = await client.PostAsync("/api/v1.0/identity/user/create", content);
         Assert.Equal(HttpStatusCode.Forbidden, result.StatusCode);
-        userManager.AddToRoleAsync(adminUser, Identity.Application.IdentityConstants.Roles.Admin).GetAwaiter().GetResult();
+        await userManager.AddToRoleAsync(adminUser!, Identity.Application.IdentityConstants.Roles.Admin);
       }
     }
 
     [Fact]
-    public async void Test_DeleteList()
+    public async Task Test_DeleteList()
     {
       var serviceScope = application.Services.CreateScope();
       var userManager = serviceScope.ServiceProvider.GetRequiredService<UserManager<IdentityUser<long>>>();
       var user1 = new IdentityUser<long> { Id = 42, UserName = "u1" };
       var user2 = new IdentityUser<long> { Id = 43, UserName = "u2" };
       var user3 = new IdentityUser<long> { Id = 44, UserName = "u3" };
-      userManager.CreateAsync(user1).GetAwaiter().GetResult();
-      userManager.CreateAsync(user2).GetAwaiter().GetResult();
-      userManager.CreateAsync(user3).GetAwaiter().GetResult();
+      await userManager.CreateAsync(user1);
+      await userManager.CreateAsync(user2);
+      await userManager.CreateAsync(user3);
 
       var payload = $"[ 42,43,44]";
       var uContent = new StringContent(payload, Encoding.UTF8, "application/json");
@@ -112,7 +112,7 @@ namespace IdentityService.Test
     [Theory]
     [InlineData("test@user.test1", false, HttpStatusCode.OK)]
     [InlineData("test@user.test1", true, HttpStatusCode.Unauthorized)]
-    public async void Test_UpdateSettings(string newUsername, bool unauthorized, HttpStatusCode code)
+    public async Task Test_UpdateSettings(string newUsername, bool unauthorized, HttpStatusCode code)
     {
       if (unauthorized)
       {
@@ -129,7 +129,7 @@ namespace IdentityService.Test
       {
         result = await client.GetAsync("/api/v1.0/identity/connect/userinfo");
         var userSettings = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync());
-        Assert.Equal(newUsername, userSettings.Name);
+        Assert.Equal(newUsername, userSettings!.Name);
 
         payload = $"{{\"name\": \"{TestApplication.UserName}\"}}";
         content = new StringContent(payload, Encoding.UTF8, "application/json");
@@ -142,7 +142,7 @@ namespace IdentityService.Test
     [InlineData("test@user.test", "secret123456", "pass", false, HttpStatusCode.BadRequest)]
     [InlineData("test@user.test", "secret90876", "pass09876", false, HttpStatusCode.BadRequest)]
     [InlineData("test@user.test", "secret123456", "pass0987654321", true, HttpStatusCode.Unauthorized)]
-    public async void Test_UpdatePassword(string newUsername, string oldPassword, string newPassword, bool unauthorized, HttpStatusCode code)
+    public async Task Test_UpdatePassword(string newUsername, string oldPassword, string newPassword, bool unauthorized, HttpStatusCode code)
     {
       if (unauthorized)
       {
@@ -164,20 +164,22 @@ namespace IdentityService.Test
     }
 
     [Fact]
-    public async void Test_RefreshTokens()
+    public async Task Test_RefreshTokens()
     {
       var newRefreshToken = refreshToken;
       var param = new KeyValuePair<string, string>("refresh_token", newRefreshToken);
 
       // send auth request
-      var payload = new List<KeyValuePair<string, string>>();
-      payload.Add(new KeyValuePair<string, string>("grant_type", "refresh_token"));
-      payload.Add(new KeyValuePair<string, string>("client_id", "testClient"));
-      payload.Add(new KeyValuePair<string, string>("scope", "offline_access"));
-      payload.Add(param);
+      var payload = new List<KeyValuePair<string, string>>
+      {
+        new("grant_type", "refresh_token"),
+        new("client_id", "testClient"),
+        new("scope", "offline_access"),
+        param
+      };
 
       // set tokens
-      var result = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload)).Result.Content.ReadAsStringAsync();
+      var result = await (await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload))).Content.ReadAsStringAsync();
       dynamic token = JObject.Parse(result);
       newRefreshToken = token.refresh_token;
       Assert.NotEqual(newRefreshToken, refreshToken);
@@ -191,42 +193,44 @@ namespace IdentityService.Test
     }
 
     [Fact]
-    public async void Test_UserInfo()
+    public async Task Test_UserInfo()
     {
       var result = await client.GetAsync("/api/v1.0/identity/connect/userinfo");
       result.EnsureSuccessStatusCode();
       var userSettings = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync());
-      Assert.Equal(TestApplication.UserName, userSettings.Name);
+      Assert.Equal(TestApplication.UserName, userSettings!.Name);
     }
 
     [Fact]
-    public async void Test_Logout()
+    public async Task Test_Logout()
     {
       var originalAuthorization = client.DefaultRequestHeaders.Authorization;
 
       client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "xyz");
 
-      var result = await client.PostAsync("/api/v1.0/identity/connect/logout", new FormUrlEncodedContent(new List<KeyValuePair<string, string>>()));
+      var result = await client.PostAsync("/api/v1.0/identity/connect/logout", new FormUrlEncodedContent([]));
       Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
 
       client.DefaultRequestHeaders.Authorization = originalAuthorization;
 
-      result = await client.PostAsync("/api/v1.0/identity/connect/logout", new FormUrlEncodedContent(new List<KeyValuePair<string, string>>()));
+      result = await client.PostAsync("/api/v1.0/identity/connect/logout", new FormUrlEncodedContent([]));
       Assert.Equal(HttpStatusCode.OK, result.StatusCode);
 
       result = await client.GetAsync("/api/v1.0/identity/connect/userinfo");
       Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
     }
 
-    private async Task _Authorize()
+    private async Task Authorize()
     {
       // send auth request
-      var payload = new List<KeyValuePair<string, string>>();
-      payload.Add(new KeyValuePair<string, string>("grant_type", "password"));
-      payload.Add(new KeyValuePair<string, string>("client_id", "testClient"));
-      payload.Add(new KeyValuePair<string, string>("scope", "offline_access"));
-      payload.Add(new KeyValuePair<string, string>("username", TestApplication.UserName));
-      payload.Add(new KeyValuePair<string, string>("password", TestApplication.Password));
+      var payload = new List<KeyValuePair<string, string>>
+      {
+        new("grant_type", "password"),
+        new("client_id", "testClient"),
+        new("scope", "offline_access"),
+        new("username", TestApplication.UserName),
+        new("password", TestApplication.Password)
+      };
 
       // set tokens
       var result = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload));
