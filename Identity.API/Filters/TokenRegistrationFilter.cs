@@ -6,15 +6,8 @@ using Microsoft.Extensions.Caching.Distributed;
 namespace Identity.Filters
 {
   // Validates the registration token for client registration
-  public class TokenRegistrationFilter : ActionFilterAttribute
+  public class TokenRegistrationFilter(IDistributedCache cache) : ActionFilterAttribute
   {
-    private readonly IDistributedCache _cache;
-
-    public TokenRegistrationFilter(IDistributedCache cache)
-    {
-      _cache = cache;
-    }
-
     public override void OnActionExecuting(ActionExecutingContext context)
     {
       var token = (string?)context.ActionArguments["regToken"];
@@ -24,7 +17,7 @@ namespace Identity.Filters
       }
 
       // get the connection id of the exiting token. Needed to inform admin for a valid client registration
-      var connectionId = _cache.GetString(token);
+      var connectionId = cache.GetString(token!);
       if (string.IsNullOrEmpty(connectionId))
       {
         context.Result = new StatusCodeResult(StatusCodes.Status403Forbidden);
@@ -32,7 +25,7 @@ namespace Identity.Filters
 
       // Add the connection id to the query
       context.ActionArguments.Add("conId", connectionId);
-      _cache.Remove(token);
+      cache.Remove(token!);
 
       base.OnActionExecuting(context);
     }

@@ -11,7 +11,6 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using DBGroup = Identity.DBContext.Models.Group;
-using System.Text.RegularExpressions;
 using AutoMapper;
 
 namespace Identity.Infrastructure
@@ -149,7 +148,7 @@ namespace Identity.Infrastructure
           OpenIddictConstants.Permissions.Endpoints.Token,
           OpenIddictConstants.Permissions.GrantTypes.ClientCredentials
         }),
-        Type = OpenIddictConstants.ClientTypes.Confidential,
+        ClientType = OpenIddictConstants.ClientTypes.Confidential,
         DisplayName = displayName,
         DeviceIdentifier = deviceIdentifier,
         Groups = defaultGroups,
@@ -182,7 +181,7 @@ namespace Identity.Infrastructure
           OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
           OpenIddictConstants.Scopes.OfflineAccess,
         }),
-        Type = OpenIddictConstants.ClientTypes.Public
+        ClientType = OpenIddictConstants.ClientTypes.Public
       };
       context.Applications.Add(client);
       await context.SaveChangesAsync().ConfigureAwait(false);

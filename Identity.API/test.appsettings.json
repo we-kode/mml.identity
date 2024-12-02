@@ -30,6 +30,15 @@
     "IdentityConnection": "Server=wekode.mml.db;Port=5432;Database=identity;User Id=identity;Password=identity;",
     "DistributedCache": "wekode.mml.cache:7379,ssl=true,password=<password>"
   },
+  "MassTransit": {
+    "Host": "wekode.mml.mbus",
+    "User": "guest",
+    "Password": "guest",
+    "VirtualHost": "/",
+    "WaitUntilStarted": true,
+    "StartTimeoutSeconds": 10,
+    "StopTimeoutSeconds": 30
+  },
   "ApiClients": [
     {
       "ClientId": "e505b488-7bc9-43aa-937a-b0367bab9b4d",

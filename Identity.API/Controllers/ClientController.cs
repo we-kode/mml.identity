@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using Asp.Versioning;
+using AutoMapper;
 using Identity.Application.Contracts;
 using Identity.Application.IdentityConstants;
 using Identity.Application.Models;
@@ -15,11 +16,9 @@ using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using static OpenIddict.Abstractions.OpenIddictConstants;
-using static StackExchange.Redis.Role;
 
 namespace Identity.Controllers
 {

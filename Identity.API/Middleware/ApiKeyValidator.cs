@@ -8,50 +8,36 @@ using System.Threading.Tasks;
 
 namespace Identity.Middleware
 {
-  public class ApiKeyValidator
+  public class ApiKeyValidator(RequestDelegate next, IConfiguration configuration, IClientRepository clientRepository)
   {
-    private readonly RequestDelegate _next;
-    private readonly IConfiguration _configuration;
-    private readonly IClientRepository _clientRepository;
-
     private const string APP_KEY_HEADER = "App-Key";
     private const string ADMIN_APP_KEY = "ADMIN_APP_KEY";
     private const string APP_KEY = "APP_KEY";
 
-    public ApiKeyValidator(RequestDelegate next, IConfiguration configuration, IClientRepository clientRepository)
-    {
-      _next = next;
-      _configuration = configuration;
-      _clientRepository = clientRepository;
-    }
-
     public async Task Invoke(HttpContext context)
     {
       // allow request from api services to validate access token.
-      if (context.Request.Headers.ContainsKey("ClientId") && context.Request.Headers.ContainsKey("ClientSecret"))
+      if (context.Request.Headers.TryGetValue("ClientId", out Microsoft.Extensions.Primitives.StringValues clientId) && context.Request.Headers.TryGetValue("ClientSecret", out Microsoft.Extensions.Primitives.StringValues clientSecret))
       {
-        string clientId = context.Request.Headers["ClientId"];
-        string clientSecret = context.Request.Headers["ClientSecret"];
-
-        if (_clientRepository.IsApiClient(clientId, clientSecret))
+        if (clientRepository.IsApiClient(clientId!, clientSecret!))
         {
-          await _next.Invoke(context);
+          await next.Invoke(context);
           return;
         }
       }
 
-      var isAdminAppRequest = context.Request.Headers[APP_KEY_HEADER] == _configuration.GetValue(ADMIN_APP_KEY, string.Empty);
-      var isAppRequest = context.Request.Headers[APP_KEY_HEADER] == _configuration.GetValue(APP_KEY, string.Empty);
+      var isAdminAppRequest = context.Request.Headers[APP_KEY_HEADER] == configuration.GetValue(ADMIN_APP_KEY, string.Empty);
+      var isAppRequest = context.Request.Headers[APP_KEY_HEADER] == configuration.GetValue(APP_KEY, string.Empty);
       if (!isAdminAppRequest && !isAppRequest)
       {
-        await _UnauthorizedRespone(context);
+        await UnauthorizedRespone(context);
         return;
       }
 
-      await _next.Invoke(context);
+      await next.Invoke(context);
     }
 
-    private async Task _UnauthorizedRespone(HttpContext context)
+    private static async Task UnauthorizedRespone(HttpContext context)
     {
       context.Response.StatusCode = 401; //Unauthorized               
       await context.Response.WriteAsync(string.Empty);
