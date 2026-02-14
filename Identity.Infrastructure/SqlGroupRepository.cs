@@ -1,33 +1,29 @@
 
-using AutoMapper;
 using Identity.Application.Contracts;
 using Identity.Application.Models;
 using Identity.DBContext;
-using MassTransit;
-using Messages;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 using DbGroup = Identity.DBContext.Models.Group;
+using Rebus.Bus;
+using Messages.Events;
 
 namespace Identity.Infrastructure
 {
   public class SqlGroupRepository : IGroupRepository
   {
     private readonly Func<ApplicationDBContext> _contextFactory;
-    private readonly IPublishEndpoint _publishEndpoint;
-    private readonly IMapper _mapper;
+    private readonly IBus _publishEndpoint;
 
     public SqlGroupRepository(
       Func<ApplicationDBContext> contextFactory,
-      IPublishEndpoint publishEndpoint,
-      IMapper mapper
+      IBus publishEndpoint
     )
     {
       _contextFactory = contextFactory;
       _publishEndpoint = publishEndpoint;
-      _mapper = mapper;
     }
 
     public async Task<Group> CreateNewGroup(string name, bool isDefault)
@@ -44,15 +40,14 @@ namespace Identity.Infrastructure
       await context.Groups.AddAsync(group).ConfigureAwait(false);
       await context.SaveChangesAsync().ConfigureAwait(false);
 
-      await _publishEndpoint.Publish<GroupCreated>(new
-      {
-        Id = groupId,
-        Name = name,
-        IsDefault = isDefault
-      })
+      await _publishEndpoint.Publish(new GroupCreated(
+        groupId,
+        name,
+        isDefault
+      ))
       .ConfigureAwait(false);
 
-      return _mapper.Map<Group>(group);
+      return new(group.Id, group.Name, group.IsDefault);
     }
 
     public async Task DeleteGroup(Guid groupId)
@@ -71,9 +66,9 @@ namespace Identity.Infrastructure
       context.Groups.Remove(group);
       await context.SaveChangesAsync().ConfigureAwait(false);
 
-      await _publishEndpoint.Publish<GroupDeleted>(new {
-        Id = groupId
-      }).ConfigureAwait(false);
+      await _publishEndpoint.Publish(new GroupDeleted(
+        groupId
+      )).ConfigureAwait(false);
     }
 
     public async Task<Group> GetGroup(Guid id)
@@ -82,7 +77,7 @@ namespace Identity.Infrastructure
       var group = await context.Groups
         .FirstAsync(group => group.Id == id)
         .ConfigureAwait(false);
-      return _mapper.Map<Group>(group);
+      return new(group.Id, group.Name, group.IsDefault);
     }
 
     public async Task<bool> GroupExists(string name, Guid? id = null)
@@ -123,7 +118,7 @@ namespace Identity.Infrastructure
       return new Groups
       {
         TotalCount = count,
-        Items = _mapper.ProjectTo<Group>(groups).ToList()
+        Items = [.. groups.Select(g => new Group(g.Id, g.Name, g.IsDefault))]
       };
     }
 
@@ -139,13 +134,7 @@ namespace Identity.Infrastructure
 
       await context.SaveChangesAsync().ConfigureAwait(false);
 
-      await _publishEndpoint.Publish<GroupUpdated>(new
-      {
-        Id = group.Id,
-        Name = group.Name,
-        IsDefault = group.IsDefault
-      })
-      .ConfigureAwait(false);
+      await _publishEndpoint.Publish(new GroupUpdated(group.Id, group.Name, group.IsDefault)).ConfigureAwait(false);
     }
   }
 }

@@ -45,7 +45,8 @@ namespace IdentityService.Test
       };
 
       // set tokens
-      var result = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload)).Result.Content.ReadAsStringAsync();
+      var response = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload), TestContext.Current.CancellationToken);
+      var result = await response.Content.ReadAsStringAsync();
       dynamic token = JObject.Parse(result);
       refreshToken = token.refresh_token;
       string accessToken = token.access_token;
@@ -59,7 +60,7 @@ namespace IdentityService.Test
       var clientId = Guid.NewGuid();
       var payload = $"{{\"clientId\": \"{clientId}\", \"displayName\": \"abc\", \"deviceIdentifier\": \"apple\"}}";
       var content = new StringContent(payload, Encoding.UTF8, "application/json");
-      var result = await client.PostAsync("/api/v1.0/identity/client", content);
+      var result = await client.PostAsync("/api/v1.0/identity/client", content, TestContext.Current.CancellationToken);
       Assert.Equal(HttpStatusCode.NotFound, result.StatusCode);
 
       using var scope = application.Services.CreateScope();
@@ -67,7 +68,7 @@ namespace IdentityService.Test
       var clientRepository = scopedServices.GetRequiredService<IClientRepository>();
       await clientRepository.CreateClient(clientId.ToString(), "123", "test", "ads", "iphone");
 
-      result = await client.PostAsync("/api/v1.0/identity/client", content);
+      result = await client.PostAsync("/api/v1.0/identity/client", content, TestContext.Current.CancellationToken);
       Assert.Equal(HttpStatusCode.OK, result.StatusCode);
       Assert.Contains(clientRepository.ListClients(new()).Items, client => client.DisplayName == "abc");
     }
@@ -75,14 +76,14 @@ namespace IdentityService.Test
     [Fact]
     public async Task Test_DeleteClients()
     {
-      var result = await client.DeleteAsync($"/api/v1.0/identity/client/abc");
+      var result = await client.DeleteAsync($"/api/v1.0/identity/client/abc", TestContext.Current.CancellationToken);
       Assert.Equal(HttpStatusCode.OK, result.StatusCode);
 
       using var scope = application.Services.CreateScope();
       var scopedServices = scope.ServiceProvider;
       var clientRepository = scopedServices.GetRequiredService<IClientRepository>();
       await clientRepository.CreateClient("clientToDelete", "123", "test", "ads", "apple");
-      result = await client.DeleteAsync($"/api/v1.0/identity/client/clientToDelete");
+      result = await client.DeleteAsync($"/api/v1.0/identity/client/clientToDelete", TestContext.Current.CancellationToken);
       result.EnsureSuccessStatusCode();
 
       Assert.Equal(0, clientRepository.ListClients(new TagFilter(), "clientToDelete").TotalCount);
@@ -100,7 +101,7 @@ namespace IdentityService.Test
 
       var payload = $"[ \"clientToDelete\",\"clientToDelete2\",\"clientToDelete3\"]";
       var uContent = new StringContent(payload, Encoding.UTF8, "application/json");
-      var result = await client.PostAsync($"/api/v1.0/identity/client/deleteList", uContent);
+      var result = await client.PostAsync($"/api/v1.0/identity/client/deleteList", uContent, TestContext.Current.CancellationToken);
       Assert.True(result.IsSuccessStatusCode);
 
       Assert.DoesNotContain(clientRepository.ListClients(new TagFilter()).Items, u => u.ClientId == "clientToDelete" || u.ClientId == "clientToDelete2" || u.ClientId == "clientToDelete3");
@@ -112,7 +113,7 @@ namespace IdentityService.Test
       var someRandomString = Convert.ToBase64String(Encoding.UTF8.GetBytes("somerandomstring"));
       var payload = $"{{\"base64PublicKey\": \"{someRandomString}\", \"displayName\": \"abc\", \"deviceIdentifier\": \"iphone\"}}";
       var content = new StringContent(payload, Encoding.UTF8, "application/json");
-      var result = await client.PostAsync("/api/v1.0/identity/client/register/abcdef", content);
+      var result = await client.PostAsync("/api/v1.0/identity/client/register/abcdef", content, TestContext.Current.CancellationToken);
       var hubFinished = false;
       var apiFinished = false;
       Assert.Equal(HttpStatusCode.Forbidden, result.StatusCode);
@@ -138,37 +139,38 @@ namespace IdentityService.Test
         Assert.True(Guid.TryParse(clientId, out Guid _));
         hubFinished = true;
       });
-      await connection.StartAsync();
-      await connection.InvokeAsync("SubscribeToClientRegistration");
+      await connection.StartAsync(TestContext.Current.CancellationToken);
+      await connection.InvokeAsync("SubscribeToClientRegistration", TestContext.Current.CancellationToken);
+      await Task.Delay(100, TestContext.Current.CancellationToken);
       while (string.IsNullOrEmpty(token))
       {
-        await Task.Delay(100);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
       }
-      result = await client.PostAsync($"/api/v1.0/identity/client/register/{token}", content);
+      result = await client.PostAsync($"/api/v1.0/identity/client/register/{token}", content, TestContext.Current.CancellationToken);
       Assert.Equal(HttpStatusCode.BadRequest, result.StatusCode);
 
       var rsa = RSA.Create();
       var pubKey = rsa.ExportRSAPublicKey();
       payload = $"{{\"base64PublicKey\": \"{Convert.ToBase64String(pubKey)}\", \"displayName\": \"abc\", \"deviceIdentifier\": \"iphone\"}}";
       content = new StringContent(payload, Encoding.UTF8, "application/json");
-      result = await client.PostAsync($"/api/v1.0/identity/client/register/{token}", content);
+      result = await client.PostAsync($"/api/v1.0/identity/client/register/{token}", content, TestContext.Current.CancellationToken);
       Assert.Equal(HttpStatusCode.Forbidden, result.StatusCode);
       token = "";
       while (string.IsNullOrEmpty(token))
       {
-        await Task.Delay(100);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
       }
-      result = await client.PostAsync($"/api/v1.0/identity/client/register/{token}", content);
-      var appClient = JsonConvert.DeserializeObject<ApplicationClient>(await result.Content.ReadAsStringAsync());
+      result = await client.PostAsync($"/api/v1.0/identity/client/register/{token}", content, TestContext.Current.CancellationToken);
+      var appClient = JsonConvert.DeserializeObject<ApplicationClient>(await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
       Assert.NotNull(appClient);
       Assert.False(string.IsNullOrEmpty(appClient!.ClientSecret));
       Assert.False(string.IsNullOrEmpty(appClient!.ClientId));
       apiFinished = true;
       while (!apiFinished && !hubFinished)
       {
-        await Task.Delay(100);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
       }
-      await connection.StopAsync();
+      await connection.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -193,7 +195,7 @@ namespace IdentityService.Test
       };
 
       // set tokens
-      var result = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload));
+      var result = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload), TestContext.Current.CancellationToken);
       Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
 
       RSA rsa = RSA.Create();
@@ -211,7 +213,7 @@ namespace IdentityService.Test
       ];
       var signature = new KeyValuePair<string, string>("code_challenge", Convert.ToBase64String(rsa.SignData(Encoding.UTF8.GetBytes(signatureString), HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1)));
       payload.Add(signature);
-      var tokenResult = await (await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload))).Content.ReadAsStringAsync();
+      var tokenResult = await (await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload), TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
       dynamic token = JObject.Parse(tokenResult);
       string accessToken = token.access_token;
       Assert.False(string.IsNullOrEmpty(accessToken));
@@ -219,13 +221,13 @@ namespace IdentityService.Test
       Assert.True(clientTokenRequestDateUpdated > clientTokenRequestDateOld);
 
       client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-      var resultList = await client.GetAsync("/api/v1.0/identity/client/list");
+      var resultList = await client.GetAsync("/api/v1.0/identity/client/list", TestContext.Current.CancellationToken);
       Assert.Equal(HttpStatusCode.Forbidden, resultList.StatusCode);
 
       // try with invalid signature
       payload.Remove(signature);
       payload.Add(new KeyValuePair<string, string>("code_challenge", Convert.ToBase64String(rsa.SignData(Encoding.UTF8.GetBytes("random string"), HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1))));
-      result = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload));
+      result = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload), TestContext.Current.CancellationToken);
       Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
     }
   }

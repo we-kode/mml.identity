@@ -1,5 +1,4 @@
 ﻿using Asp.Versioning;
-using AutoMapper;
 using Identity.Application.Contracts;
 using Identity.Application.IdentityConstants;
 using Identity.Application.Models;
@@ -30,20 +29,17 @@ namespace Identity.Controllers
     private readonly IClientRepository clientRepository;
     private readonly IHubContext<RegisterClientHub> hubContext;
     private readonly ClientApplicationService _service;
-    private readonly IMapper _mapper;
 
     private readonly IConfiguration _configuration;
 
     public ClientController(IClientRepository clientRepository,
       IHubContext<RegisterClientHub> hubContext,
       ClientApplicationService service,
-      IMapper mapper,
       IConfiguration configuration)
     {
       this.clientRepository = clientRepository;
       this.hubContext = hubContext;
       _service = service;
-      _mapper = mapper;
       _configuration = configuration;
     }
 
@@ -74,7 +70,12 @@ namespace Identity.Controllers
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
     public Clients List([FromBody] Contracts.TagFilter tagFilter, [FromQuery] string? filter, [FromQuery] int skip = Application.IdentityConstants.List.Skip, [FromQuery] int take = Application.IdentityConstants.List.Take)
     {
-      return clientRepository.ListClients(_mapper.Map<Application.Contracts.TagFilter>(tagFilter), filter, skip, take);
+      var appTagFilter = new Application.Contracts.TagFilter
+      {
+        Groups = tagFilter.Groups,
+        OnlyNew = tagFilter.OnlyNew
+      };
+      return clientRepository.ListClients(appTagFilter, filter, skip, take);
     }
 
     /// <summary>
@@ -162,7 +163,7 @@ namespace Identity.Controllers
         return NotFound();
       }
 
-      clientRepository.Update(_mapper.Map<Client>(request));
+      clientRepository.Update(new Client(request.ClientId.ToString(), request.DisplayName, request.DeviceIdentifier, request.Groups));
       return Ok();
     }
 

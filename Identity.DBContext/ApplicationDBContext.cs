@@ -26,6 +26,9 @@ namespace Identity.DBContext
     {
       modelBuilder.HasDefaultSchema("public");
       base.OnModelCreating(modelBuilder);
+
+      modelBuilder.Entity<IdentityPasskeyData>().HasNoKey();
+
       modelBuilder.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
 
       foreach (var entity in modelBuilder.Model.GetEntityTypes())

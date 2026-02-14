@@ -11,7 +11,6 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using DBGroup = Identity.DBContext.Models.Group;
-using AutoMapper;
 
 namespace Identity.Infrastructure
 {
@@ -19,17 +18,14 @@ namespace Identity.Infrastructure
   {
     private readonly Func<ApplicationDBContext> _contextFactory;
     private readonly IGroupRepository _groupRepository;
-    private readonly IMapper _mapper;
 
     public SqlClientRepository(
       Func<ApplicationDBContext> contextFactory,
-      IGroupRepository groupRepository,
-      IMapper mapper
+      IGroupRepository groupRepository
     )
     {
       _contextFactory = contextFactory;
       _groupRepository = groupRepository;
-      _mapper = mapper;
     }
 
     public Clients ListClients(TagFilter tagFilter, string? filter, int skip, int take)
@@ -176,7 +172,7 @@ namespace Identity.Infrastructure
         Permissions = JsonSerializer.Serialize(new[]
         {
           OpenIddictConstants.Permissions.Endpoints.Token,
-          OpenIddictConstants.Permissions.Endpoints.Logout,
+          OpenIddictConstants.Permissions.Endpoints.EndSession,
           OpenIddictConstants.Permissions.GrantTypes.Password,
           OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
           OpenIddictConstants.Scopes.OfflineAccess,
@@ -285,7 +281,7 @@ namespace Identity.Infrastructure
       return new Groups
       {
         TotalCount = count,
-        Items = _mapper.ProjectTo<Application.Models.Group>(groups).ToList(),
+        Items = [.. groups.Select(g => new Application.Models.Group(g.Id, g.Name, g.IsDefault))],
       };
     }
   }

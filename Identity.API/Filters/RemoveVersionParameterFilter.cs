@@ -1,4 +1,4 @@
-﻿using Microsoft.OpenApi.Models;
+﻿using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Linq;
 
@@ -8,8 +8,16 @@ namespace Identity.Filters
   {
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
+      if (operation.Parameters == null)
+      {
+        return;
+      }
+
       var versionParameter = operation.Parameters.Single(p => p.Name == "version");
-      operation.Parameters.Remove(versionParameter);
+      if (versionParameter != null)
+      {
+        operation.Parameters.Remove(versionParameter);
+      }
     }
   }
 }

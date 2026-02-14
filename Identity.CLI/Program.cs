@@ -1,10 +1,8 @@
 ﻿using Autofac;
 using Autofac.Extensions.DependencyInjection;
-using AutoMapper;
 using Identity.Application;
 using Identity.DBContext;
 using Identity.Infrastructure;
-using MassTransit;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -12,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OpenIddict.Abstractions;
+using Rebus.Config;
 using ScottBrady91.AspNetCore.Identity;
 using System;
 using System.Threading.Tasks;
@@ -55,26 +54,21 @@ namespace Identity.CLI
                 .AddEntityFrameworkStores<ApplicationDBContext>()
                 .AddDefaultTokenProviders();
 
-            services.AddMassTransit(mt =>
-            {
-              mt.UsingRabbitMq((context, cfg) =>
-              {
-                cfg.Host(config["MassTransit:Host"], config["MassTransit:VirtualHost"], h =>
-                {
-                  h.Username(config["MassTransit:User"] ?? throw new ArgumentNullException("MassTransit:User"));
-                  h.Password(config["MassTransit:Password"] ?? throw new ArgumentNullException("MassTransit:Password"));
-                });
+            // Configure Rebus with RabbitMQ transport
+            var mBusHost = config["MessageBus:Host"] ?? throw new ArgumentNullException("MessageBus:Host");
+            var mBusVirtualHost = config["MessageBus:VirtualHost"];
+            var mBusUser = config["MessageBus:User"] ?? throw new ArgumentNullException("MessageBus:User");
+            var mBusPassword = config["MessageBus:Password"] ?? throw new ArgumentNullException("MessageBus:Password");
 
-                cfg.ConfigureEndpoints(context);
-              });
-            });
-            services.AddOptions<MassTransitHostOptions>()
-              .Configure(options =>
-              {
-                options.WaitUntilStarted = bool.Parse(config["MassTransit:WaitUntilStarted"] ?? "False");
-                options.StartTimeout = TimeSpan.FromSeconds(double.Parse(config["MassTransit:StartTimeoutSeconds"] ?? "60"));
-                options.StopTimeout = TimeSpan.FromSeconds(double.Parse(config["MassTransit:StopTimeoutSeconds"] ?? "60"));
-              });
+            var mBusConnection = $"amqp://{mBusUser}:{mBusPassword}@{mBusHost}";
+            if (!string.IsNullOrEmpty(mBusVirtualHost))
+            {
+              mBusConnection += $"/{mBusVirtualHost}";
+            }
+
+            services.AddRebus(configure =>
+                configure.Transport(t => t.UseRabbitMq(mBusConnection, "identity-queue"))
+            );
           })
           .ConfigureContainer<ContainerBuilder>((context, cBuilder) =>
           {
@@ -95,19 +89,6 @@ namespace Identity.CLI
             cBuilder.RegisterInstance(factory);
 
             cBuilder.RegisterInstance(factory);
-
-            cBuilder.Register(context => new MapperConfiguration(cfg =>
-            {
-            })).AsSelf().SingleInstance();
-            cBuilder.Register(c =>
-            {
-              //This resolves a new context that can be used later.
-              var context = c.Resolve<IComponentContext>();
-              var config = context.Resolve<MapperConfiguration>();
-              return config.CreateMapper(context.Resolve);
-            })
-            .As<IMapper>()
-            .InstancePerLifetimeScope();
           })
           .RunConsoleAsync()
           .ConfigureAwait(false);

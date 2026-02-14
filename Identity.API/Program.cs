@@ -1,11 +1,8 @@
 using Asp.Versioning;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
-using AutoMapper;
 using Identity.Application;
-using Identity.Application.Models;
 using Identity.Application.Services;
-using Identity.Contracts;
 using Identity.DBContext;
 using Identity.DBContext.Models;
 using Identity.Filters;
@@ -13,7 +10,6 @@ using Identity.Handlers;
 using Identity.Infrastructure;
 using Identity.Middleware;
 using Identity.Sockets;
-using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -21,16 +17,18 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
 using Quartz;
+using Rebus.Config;
+using Rebus.Transport.InMem;
 using ScottBrady91.AspNetCore.Identity;
 using System;
+using System.IO;
+using System.Security.Cryptography.X509Certificates;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 using static OpenIddict.Server.OpenIddictServerEvents;
-using DbGroup = Identity.DBContext.Models.Group;
-using Group = Identity.Application.Models.Group;
 
 #pragma warning disable CA2208 // Instantiate argument exceptions correctly
 var builder = WebApplication.CreateBuilder(args);
@@ -82,39 +80,30 @@ builder.Services.AddCors(options =>
 
 if (!builder.Environment.IsEnvironment("Test"))
 {
-  builder.Services.AddMassTransit(mt =>
-  {
-    mt.UsingRabbitMq((context, cfg) =>
-    {
-      cfg.Host(builder.Configuration["MassTransit:Host"], builder.Configuration["MassTransit:VirtualHost"], h =>
-      {
+  // Configure Rebus with RabbitMQ transport
+  var mBusHost = builder.Configuration["MessageBus:Host"] ?? throw new ArgumentNullException("MessageBus:Host");
+  var mBusVirtualHost = builder.Configuration["MessageBus:VirtualHost"];
+  var mBusUser = builder.Configuration["MessageBus:User"] ?? throw new ArgumentNullException("MessageBus:User");
+  var mBusPassword = builder.Configuration["MessageBus:Password"] ?? throw new ArgumentNullException("MessageBus:Password");
 
-        h.Username(builder.Configuration["MassTransit:User"] ?? throw new ArgumentNullException("MassTransit:User"));
-        h.Password(builder.Configuration["MassTransit:Password"] ?? throw new ArgumentNullException("MassTransit:Password"));
-      });
-
-      cfg.ConfigureEndpoints(context);
-    });
-  });
-  builder.Services.AddOptions<MassTransitHostOptions>()
-  .Configure(options =>
+  var mBusConnection = $"amqp://{mBusUser}:{mBusPassword}@{mBusHost}";
+  if (!string.IsNullOrEmpty(mBusVirtualHost))
   {
-    options.WaitUntilStarted = bool.Parse(builder.Configuration["MassTransit:WaitUntilStarted"] ?? "False");
-    options.StartTimeout = TimeSpan.FromSeconds(double.Parse(builder.Configuration["MassTransit:StartTimeoutSeconds"] ?? "60"));
-    options.StopTimeout = TimeSpan.FromSeconds(double.Parse(builder.Configuration["MassTransit:StopTimeoutSeconds"] ?? "60"));
-  });
+    mBusConnection += $"/{mBusVirtualHost}";
+  }
+
+  builder.Services.AddRebus(configure =>
+      configure.Transport(t => t.UseRabbitMq(mBusConnection, "identity-queue"))
+  );
 }
 else
 {
-  builder.Services.AddMassTransitTestHarness(x =>
-   {
-     x.AddDelayedMessageScheduler();
-     x.UsingInMemory((context, cfg) =>
-     {
-       cfg.UseDelayedMessageScheduler();
-       cfg.ConfigureEndpoints(context);
-     });
-   });
+  // Use Rebus in-memory transport for tests to avoid external RabbitMQ dependency
+  var inMemNetwork = new Rebus.Transport.InMem.InMemNetwork();
+  builder.Services.AddSingleton(inMemNetwork);
+  builder.Services.AddRebus(config =>
+    config.Transport(t => t.UseInMemoryTransport(inMemNetwork, "identity-test-queue"))
+  );
 }
 #endregion
 
@@ -192,8 +181,8 @@ builder.Services.AddOpenIddict()
 
       options.SetIssuer(new Uri(builder.Configuration["OpenId:Issuer"] ?? throw new ArgumentNullException("OpenId:Issuer")));
       options.SetTokenEndpointUris("api/v1.0/identity/connect/token")
-             .SetUserinfoEndpointUris("api/v1.0/identity/connect/userinfo")
-             .SetLogoutEndpointUris("api/v1.0/identity/connect/logout")
+             .SetUserInfoEndpointUris("api/v1.0/identity/connect/userinfo")
+             .SetEndSessionEndpointUris("api/v1.0/identity/connect/logout")
              .SetIntrospectionEndpointUris("api/v1.0/identity/connect/introspect");
 
       options.UseReferenceAccessTokens();
@@ -213,14 +202,16 @@ builder.Services.AddOpenIddict()
       }
       else
       {
-        options.AddSigningCertificate(new System.Security.Cryptography.X509Certificates.X509Certificate2(builder.Configuration["OpenId:SigningCert"] ?? throw new ArgumentNullException("OpenId:SigningCert")))
-               .AddEncryptionCertificate(new System.Security.Cryptography.X509Certificates.X509Certificate2(builder.Configuration["OpenId:EncryptionCert"] ?? throw new ArgumentNullException("OpenId:EncryptionCert")));
+        var signingCert = X509CertificateLoader.LoadPkcs12(File.ReadAllBytes(builder.Configuration["OpenId:SigningCert"] ?? throw new ArgumentNullException("OpenId:SigningCert")), null);
+        var encryptCert = X509CertificateLoader.LoadPkcs12(File.ReadAllBytes(builder.Configuration["OpenId:EncryptionCert"] ?? throw new ArgumentNullException("OpenId:EncryptionCert")), null);
+        options.AddSigningCertificate(signingCert)
+               .AddEncryptionCertificate(encryptCert);
       }
 
       var openidBuilder = options.UseAspNetCore()
              .EnableTokenEndpointPassthrough()
-             .EnableUserinfoEndpointPassthrough()
-             .EnableLogoutEndpointPassthrough();
+             .EnableUserInfoEndpointPassthrough()
+             .EnableEndSessionEndpointPassthrough();
 
       if (builder.Environment.IsEnvironment("Test"))
       {
@@ -262,23 +253,6 @@ builder.Host.ConfigureContainer<ContainerBuilder>(cBuilder =>
 
     cBuilder.RegisterInstance(factory);
   }
-
-  // automapper
-  cBuilder.Register(context => new MapperConfiguration(cfg =>
-  {
-    cfg.CreateMap<ClientUpdateRequest, Client>();
-    cfg.CreateMap<DbGroup, Group>();
-    cfg.CreateMap<TagFilter, Identity.Application.Contracts.TagFilter>();
-  })).AsSelf().SingleInstance();
-  cBuilder.Register(c =>
-  {
-    //This resolves a new context that can be used later.
-    var context = c.Resolve<IComponentContext>();
-    var config = context.Resolve<MapperConfiguration>();
-    return config.CreateMapper(context.Resolve);
-  })
-  .As<IMapper>()
-  .InstancePerLifetimeScope();
 });
 #endregion
 

@@ -5,6 +5,7 @@ ARG GID
 RUN groupadd --gid $GID $USERNAME \
     && useradd --uid $UID --gid $GID -m $USERNAME
 USER $USERNAME
+RUN apt-get update && apt-get install -y libgssapi-krb5-2 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 EXPOSE 5051
 ENV ASPNETCORE_ENVIRONMENT=Release
