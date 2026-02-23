@@ -93,13 +93,13 @@ if (!builder.Environment.IsEnvironment("Test"))
   }
 
   builder.Services.AddRebus(configure =>
-      configure.Transport(t => t.UseRabbitMq(mBusConnection, "identity-queue"))
+      configure.Transport(t => t.UseRabbitMq(mBusConnection, "mml-queue"))
   );
 }
 else
 {
   // Use Rebus in-memory transport for tests to avoid external RabbitMQ dependency
-  var inMemNetwork = new Rebus.Transport.InMem.InMemNetwork();
+  var inMemNetwork = new InMemNetwork();
   builder.Services.AddSingleton(inMemNetwork);
   builder.Services.AddRebus(config =>
     config.Transport(t => t.UseInMemoryTransport(inMemNetwork, "identity-test-queue"))
