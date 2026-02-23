@@ -7,15 +7,9 @@ using System.Transactions;
 
 namespace Identity.Application.Services
 {
-  public class ClientApplicationService
+  public class ClientApplicationService(IClientRepository repository)
   {
-    private readonly IClientRepository _repository;
     private const int secretLength = 101;
-
-    public ClientApplicationService(IClientRepository repository)
-    {
-      _repository = repository;
-    }
 
     /// <summary>
     /// Generates new client
@@ -29,11 +23,11 @@ namespace Identity.Application.Services
       using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
       var secret = new Password(secretLength).Next();
       var client = new ApplicationClient(Guid.NewGuid().ToString(), secret);
-      if (_repository.ClientExists(client.ClientId))
+      if (repository.ClientExists(client.ClientId))
       {
         return null;
       }
-      await _repository.CreateClient(client.ClientId, client.ClientSecret, b64PublicKey, displayName, deviceIdentifier).ConfigureAwait(false);
+      await repository.CreateClient(client.ClientId, client.ClientSecret, b64PublicKey, displayName, deviceIdentifier).ConfigureAwait(false);
       scope.Complete();
       return client;
     }

@@ -1,6 +1,6 @@
 ﻿using Autofac;
 using Autofac.Extensions.DependencyInjection;
-using Identity.Application;
+using Identity.Application.Services;
 using Identity.DBContext;
 using Identity.Infrastructure;
 using Microsoft.AspNetCore.Identity;

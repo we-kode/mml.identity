@@ -1,6 +1,6 @@
-using Identity.Application;
 using Identity.Application.Contracts;
 using Identity.Application.IdentityConstants;
+using Identity.Application.Services;
 using Identity.Extensions;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
@@ -143,7 +143,7 @@ namespace Identity.Controllers
         client.SetClaim(Claims.Role, Roles.Client);
 
         var dbClient = clientRepository.GetClient(request.ClientId!);
-        client.SetClaims(IdentityClaims.ClientGroup, dbClient.Groups.Select(g => g.Id.ToString()).ToImmutableArray());
+        client.SetClaims(IdentityClaims.ClientGroup, [.. dbClient.Groups.Select(g => g.Id.ToString())]);
 
         var claimsPrincipal = new ClaimsPrincipal(client);
         claimsPrincipal.SetScopes(request.GetScopes());

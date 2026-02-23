@@ -4,21 +4,13 @@ using OpenIddict.Abstractions;
 using System;
 using System.Threading.Tasks;
 
-namespace Identity.Application
+namespace Identity.Application.Services
 {
   /// <summary>
   /// Handles identity functions.
   /// </summary>
-  public class ApplicationService
+  public class ApplicationService(IIdentityRepository identityRepository, IOpenIddictTokenManager tokenManager)
   {
-    private readonly IIdentityRepository _identityRepository;
-    private readonly IOpenIddictTokenManager _tokenManager;
-
-    public ApplicationService(IIdentityRepository identityRepository, IOpenIddictTokenManager tokenManager)
-    {
-      _identityRepository = identityRepository;
-      _tokenManager = tokenManager;
-    }
 
     /// <summary>
     /// Creates a new user login
@@ -27,11 +19,11 @@ namespace Identity.Application
     /// <param name="initPassword">The initial password for the created user</param>
     public async Task<User> Create(string userName, string initPassword)
     {
-      if (await _identityRepository.UserExists(userName).ConfigureAwait(false))
+      if (await identityRepository.UserExists(userName).ConfigureAwait(false))
       {
         throw new ArgumentException($"User with name {nameof(userName)} already exists.");
       }
-      var user = await _identityRepository.CreateNewUser(userName, initPassword).ConfigureAwait(false);
+      var user = await identityRepository.CreateNewUser(userName, initPassword).ConfigureAwait(false);
       return user;
     }
 
@@ -48,7 +40,7 @@ namespace Identity.Application
       }
 
       await RevokeTokens(userId).ConfigureAwait(false);
-      await _identityRepository.Delete(userId).ConfigureAwait(false);
+      await identityRepository.Delete(userId).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -60,10 +52,10 @@ namespace Identity.Application
     /// <returns></returns>
     public async Task UpdateUser(long id, string userName, string? changedPassword)
     {
-      await _identityRepository.UpdateUserName(id, userName);
+      await identityRepository.UpdateUserName(id, userName);
       if (!string.IsNullOrEmpty(changedPassword))
       {
-        await _identityRepository.ResetPassword(id, changedPassword).ConfigureAwait(false);
+        await identityRepository.ResetPassword(id, changedPassword).ConfigureAwait(false);
         await RevokeTokens(id).ConfigureAwait(false);
       }
     }
@@ -74,9 +66,9 @@ namespace Identity.Application
     /// <param name="userId">Id of uiser</param>
     public async Task RevokeTokens(long userId)
     {
-      await foreach (var token in _tokenManager.FindBySubjectAsync(userId.ToString()).ConfigureAwait(false))
+      await foreach (var token in tokenManager.FindBySubjectAsync(userId.ToString()).ConfigureAwait(false))
       {
-        await _tokenManager.TryRevokeAsync(token).ConfigureAwait(false);
+        await tokenManager.TryRevokeAsync(token).ConfigureAwait(false);
       }
     }
 
@@ -90,13 +82,13 @@ namespace Identity.Application
     /// <returns>True, if update was successful</returns>
     public async Task<bool> Update(long id, string userName, string? oldPassword = "", string? newPassword = "")
     {
-      await _identityRepository.UpdateUserName(id, userName).ConfigureAwait(false);
+      await identityRepository.UpdateUserName(id, userName).ConfigureAwait(false);
       if (string.IsNullOrEmpty(oldPassword) || string.IsNullOrEmpty(newPassword))
       {
         return true;
       }
 
-      return await _identityRepository.UpdateUserPassword(id, oldPassword, newPassword).ConfigureAwait(false);
+      return await identityRepository.UpdateUserPassword(id, oldPassword, newPassword).ConfigureAwait(false);
     }
   }
 }

@@ -12,23 +12,14 @@ using Messages.Events;
 
 namespace Identity.Infrastructure
 {
-  public class SqlGroupRepository : IGroupRepository
+  public class SqlGroupRepository(
+    Func<ApplicationDBContext> contextFactory,
+    IBus publishEndpoint
+    ) : IGroupRepository
   {
-    private readonly Func<ApplicationDBContext> _contextFactory;
-    private readonly IBus _publishEndpoint;
-
-    public SqlGroupRepository(
-      Func<ApplicationDBContext> contextFactory,
-      IBus publishEndpoint
-    )
-    {
-      _contextFactory = contextFactory;
-      _publishEndpoint = publishEndpoint;
-    }
-
     public async Task<Group> CreateNewGroup(string name, bool isDefault)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var groupId = Guid.NewGuid();
       var group = new DbGroup
       {
@@ -40,7 +31,7 @@ namespace Identity.Infrastructure
       await context.Groups.AddAsync(group).ConfigureAwait(false);
       await context.SaveChangesAsync().ConfigureAwait(false);
 
-      await _publishEndpoint.Publish(new GroupCreated(
+      await publishEndpoint.Publish(new GroupCreated(
         groupId,
         name,
         isDefault
@@ -52,7 +43,7 @@ namespace Identity.Infrastructure
 
     public async Task DeleteGroup(Guid groupId)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
 
       var group = await context.Groups
         .FirstOrDefaultAsync(group => group.Id == groupId)
@@ -66,14 +57,14 @@ namespace Identity.Infrastructure
       context.Groups.Remove(group);
       await context.SaveChangesAsync().ConfigureAwait(false);
 
-      await _publishEndpoint.Publish(new GroupDeleted(
+      await publishEndpoint.Publish(new GroupDeleted(
         groupId
       )).ConfigureAwait(false);
     }
 
     public async Task<Group> GetGroup(Guid id)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var group = await context.Groups
         .FirstAsync(group => group.Id == id)
         .ConfigureAwait(false);
@@ -82,7 +73,7 @@ namespace Identity.Infrastructure
 
     public async Task<bool> GroupExists(string name, Guid? id = null)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var result = await context.Groups
         .FirstOrDefaultAsync(group => group.Name == name)
         .ConfigureAwait(false);
@@ -91,7 +82,7 @@ namespace Identity.Infrastructure
 
     public async Task<bool> GroupExists(Guid id)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       return await context.Groups
         .AnyAsync(group => group.Id == id)
         .ConfigureAwait(false);
@@ -103,7 +94,7 @@ namespace Identity.Infrastructure
       int take = Application.IdentityConstants.List.Take
     )
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var query = context.Groups
         .Where(group => string.IsNullOrEmpty(filter) ||
           EF.Functions.ILike(group.Name ?? "", $"%{filter}%")
@@ -124,7 +115,7 @@ namespace Identity.Infrastructure
 
     public async Task UpdateGroup(Group group)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
 
       var groupToBeUpdated = await context.Groups
         .FirstAsync(g => g.Id == group.Id)
@@ -134,7 +125,7 @@ namespace Identity.Infrastructure
 
       await context.SaveChangesAsync().ConfigureAwait(false);
 
-      await _publishEndpoint.Publish(new GroupUpdated(group.Id, group.Name, group.IsDefault)).ConfigureAwait(false);
+      await publishEndpoint.Publish(new GroupUpdated(group.Id, group.Name, group.IsDefault)).ConfigureAwait(false);
     }
   }
 }

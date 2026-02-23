@@ -24,24 +24,11 @@ namespace Identity.Controllers
   [ApiController]
   [ApiVersion("1.0")]
   [Route("api/v{version:apiVersion}/identity/[controller]")]
-  public class ClientController : ControllerBase
+  public class ClientController(IClientRepository clientRepository,
+    IHubContext<RegisterClientHub> hubContext,
+    ClientApplicationService service,
+    IConfiguration configuration) : ControllerBase
   {
-    private readonly IClientRepository clientRepository;
-    private readonly IHubContext<RegisterClientHub> hubContext;
-    private readonly ClientApplicationService _service;
-
-    private readonly IConfiguration _configuration;
-
-    public ClientController(IClientRepository clientRepository,
-      IHubContext<RegisterClientHub> hubContext,
-      ClientApplicationService service,
-      IConfiguration configuration)
-    {
-      this.clientRepository = clientRepository;
-      this.hubContext = hubContext;
-      _service = service;
-      _configuration = configuration;
-    }
 
     /// <summary>
     /// Loads a list of existing clients.
@@ -176,7 +163,7 @@ namespace Identity.Controllers
     {
       return new JsonResult(new
       {
-        ApiKey = _configuration.GetValue("APP_KEY", string.Empty)
+        ApiKey = configuration.GetValue("APP_KEY", string.Empty)
       });
     }
 
@@ -232,7 +219,7 @@ namespace Identity.Controllers
         return BadRequest();
       }
 
-      var client = await _service.CreateClient(request.Base64PublicKey, request.DisplayName, request.DeviceIdentifier).ConfigureAwait(false);
+      var client = await service.CreateClient(request.Base64PublicKey, request.DisplayName, request.DeviceIdentifier).ConfigureAwait(false);
       if (client == null)
       {
         return StatusCode(HttpStatusCodes.BusinessError, "CLIENT_CREATION_FAILED");

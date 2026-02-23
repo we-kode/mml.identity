@@ -6,22 +6,11 @@ using System.Threading.Tasks;
 
 namespace Identity.CLI
 {
-  public class ConsoleHostedService : IHostedService
+  public class ConsoleHostedService(IHostApplicationLifetime appLifetime, IIdentityRepository identityRepository, IClientRepository clientRepository) : IHostedService
   {
-    private readonly IHostApplicationLifetime _appLifetime;
-    private readonly IIdentityRepository _identityRepository;
-    private readonly IClientRepository _clientRepository;
-
-    public ConsoleHostedService(IHostApplicationLifetime appLifetime, IIdentityRepository identityRepository, IClientRepository clientRepository)
-    {
-      _appLifetime = appLifetime;
-      _identityRepository = identityRepository;
-      _clientRepository = clientRepository;
-    }
-
     public Task StartAsync(CancellationToken cancellationToken)
     {
-      _appLifetime.ApplicationStarted.Register(() =>
+      appLifetime.ApplicationStarted.Register(() =>
         {
           Task.Run(async () =>
           {
@@ -30,7 +19,7 @@ namespace Identity.CLI
               var args = Environment.GetCommandLineArgs();
               if (args.Length == 1)
               {
-                var adminUser = new AdminUser(_identityRepository, _clientRepository);
+                var adminUser = new AdminUser(identityRepository, clientRepository);
                 if (!await adminUser.CreateUser().ConfigureAwait(false))
                 {
                   return;
@@ -45,7 +34,7 @@ namespace Identity.CLI
                 return;
               }
 
-              var adminClient = new AdminClient(_clientRepository);
+              var adminClient = new AdminClient(clientRepository);
               switch (args[1])
               {
                 case "-ac":
@@ -79,7 +68,7 @@ namespace Identity.CLI
             finally
             {
               // Stop the application once the work is done
-              _appLifetime.StopApplication();
+              appLifetime.StopApplication();
             }
           });
         });

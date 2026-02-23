@@ -14,23 +14,14 @@ using DBGroup = Identity.DBContext.Models.Group;
 
 namespace Identity.Infrastructure
 {
-  public class SqlClientRepository : IClientRepository
+  public class SqlClientRepository(
+    Func<ApplicationDBContext> contextFactory,
+    IGroupRepository groupRepository
+    ) : IClientRepository
   {
-    private readonly Func<ApplicationDBContext> _contextFactory;
-    private readonly IGroupRepository _groupRepository;
-
-    public SqlClientRepository(
-      Func<ApplicationDBContext> contextFactory,
-      IGroupRepository groupRepository
-    )
-    {
-      _contextFactory = contextFactory;
-      _groupRepository = groupRepository;
-    }
-
     public Clients ListClients(TagFilter tagFilter, string? filter, int skip, int take)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var query = context.Applications
         .Include(app => app.Groups)
         .Where(app => !string.IsNullOrEmpty(app.Permissions))
@@ -65,7 +56,7 @@ namespace Identity.Infrastructure
 
     public void DeleteClient(string id)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var client = context.Applications.FirstOrDefault(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == id);
       if (client == null)
       {
@@ -81,7 +72,7 @@ namespace Identity.Infrastructure
 
     public void Update(Client client)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
 
       var clientToBeUpdated = context.Applications
         .Include(app => app.Groups)
@@ -91,7 +82,7 @@ namespace Identity.Infrastructure
       clientToBeUpdated.DeviceIdentifier = client.DeviceIdentifier;
 
       var addedGroups = client.Groups
-        .Where(g => _groupRepository.GroupExists(g.Id).GetAwaiter().GetResult())
+        .Where(g => groupRepository.GroupExists(g.Id).GetAwaiter().GetResult())
         .Where(g => !clientToBeUpdated.Groups.Select(cg => cg.Id).Contains(g.Id))
         .Select(g => new DBGroup
         {
@@ -122,13 +113,13 @@ namespace Identity.Infrastructure
 
     public string? GetPublicKey(string clientId)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       return context.Applications.FirstOrDefault(app => app.ClientId == clientId)?.PublicKey;
     }
 
     public async Task CreateClient(string clientId, string clientSecret, string b64PublicKey, string displayName, string deviceIdentifier)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
 
       var defaultGroups = context.Groups
         .Where(g => g.IsDefault)
@@ -157,13 +148,13 @@ namespace Identity.Infrastructure
 
     public bool AdminAppExists()
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       return context.Applications.Any(app => !string.IsNullOrEmpty(app.Permissions) && EF.Functions.Like(app.Permissions ?? "", $"%{OpenIddictConstants.GrantTypes.Password}%"));
     }
 
     public async Task<Guid> CreateAdminApp()
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var clientId = Guid.NewGuid();
       var client = new OpenIddictClientApplication
       {
@@ -186,22 +177,21 @@ namespace Identity.Infrastructure
 
     public IList<Guid> ListAdminClientIds()
     {
-      using var context = _contextFactory();
-      return context.Applications
+      using var context = contextFactory();
+      return [.. context.Applications
         .Where(app => EF.Functions.ILike(app.Permissions ?? "", $"%{OpenIddictConstants.Permissions.GrantTypes.Password}%"))
-        .Select(app => Guid.Parse(app.ClientId!))
-        .ToList();
+        .Select(app => Guid.Parse(app.ClientId!))];
     }
 
     public bool ClientExists(string clientId)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       return context.Applications.Any(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == clientId);
     }
 
     public Client GetClient(string id)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var client = context.Applications
         .Include(app => app.Groups)
         .First(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == id);
@@ -210,7 +200,7 @@ namespace Identity.Infrastructure
 
     public void UpdateTokenRequestDate(string clientId)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var client = context.Applications.FirstOrDefault(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == clientId);
       if (client == null)
       {
@@ -226,9 +216,9 @@ namespace Identity.Infrastructure
         client.ClientId ?? "",
         client.DisplayName ?? "",
         client.DeviceIdentifier,
-        client.Groups.Select(g => new Application.Models.Group(
+        [.. client.Groups.Select(g => new Application.Models.Group(
           g.Id, g.Name, g.IsDefault
-        )).ToArray())
+        ))])
       {
         LastTokenRefreshDate = client.LastTokenRefreshDate
       };
@@ -236,7 +226,7 @@ namespace Identity.Infrastructure
 
     public bool IsApiClient(string clientId, string clientSecret)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var client = context.Applications.FirstOrDefault(app =>
         EF.Functions.ILike(app.Permissions ?? "", $"%{OpenIddictConstants.Permissions.Endpoints.Introspection}%") &&
         !string.IsNullOrEmpty(app.ClientId) && app.ClientId == clientId
@@ -246,7 +236,7 @@ namespace Identity.Infrastructure
 
     public IList<string> GetApiClients()
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var clients = context.Applications
         .Where(app => EF.Functions.ILike(app.Permissions ?? "", $"%{OpenIddictConstants.Permissions.Endpoints.Introspection}%"))
         .Select(app => app.ClientId)
@@ -257,7 +247,7 @@ namespace Identity.Infrastructure
 
     public void Assign(List<string> clients, List<Guid> initGroups, List<Guid> groups)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var cAssing = context.Applications
         .Include(app => app.Groups)
         .Where(app => !string.IsNullOrEmpty(app.ClientId) && clients.Contains(app.ClientId)).ToList();
@@ -265,14 +255,14 @@ namespace Identity.Infrastructure
        .Where(g => groups.Contains(g.Id));
       foreach (var client in cAssing)
       {
-        client.Groups = client.Groups.Where(cg => initGroups.Contains(cg.Id) && !groups.Contains(cg.Id)).Union(gAssign).ToList();
+        client.Groups = [.. client.Groups.Where(cg => initGroups.Contains(cg.Id) && !groups.Contains(cg.Id)).Union(gAssign)];
       }
       context.SaveChanges();
     }
 
     public Groups GetAssignedGroups(List<string> clients)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var groups = context.Groups
         .Where(g => g.Clients.Any(c => !string.IsNullOrEmpty(c.ClientId) && clients.Contains(c.ClientId)));
 

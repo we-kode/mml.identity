@@ -1,7 +1,6 @@
 using Asp.Versioning;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
-using Identity.Application;
 using Identity.Application.Services;
 using Identity.DBContext;
 using Identity.DBContext.Models;
@@ -336,6 +335,4 @@ foreach (IConfigurationSection apiClient in apiClientsSection.GetChildren())
 }
 
 app.Run();
-
-public partial class Program { }
 #pragma warning restore CA2208 // Instantiate argument exceptions correctly
