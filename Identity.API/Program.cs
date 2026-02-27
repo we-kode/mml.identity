@@ -21,7 +21,6 @@ using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
 using Quartz;
 using Rebus.Config;
-using Rebus.Routing.TypeBased;
 using Rebus.Transport.InMem;
 using ScottBrady91.AspNetCore.Identity;
 using System;

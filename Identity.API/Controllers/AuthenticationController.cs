@@ -11,7 +11,6 @@ using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
 using System;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
