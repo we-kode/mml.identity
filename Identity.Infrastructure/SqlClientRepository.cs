@@ -39,6 +39,11 @@ namespace Identity.Infrastructure
         query = query.Where(c => c.RegistrationDate >= oldestDate);
       }
 
+      if (tagFilter.Inactive)
+      {
+        query = query.Where(c => c.LastTokenRefreshDate < oldestDate.AddYears(-1));
+      }
+
       var count = query.Count();
       var clients = query
         .OrderBy(app => app.DisplayName)
