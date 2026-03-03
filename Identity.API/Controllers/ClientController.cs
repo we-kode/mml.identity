@@ -60,7 +60,8 @@ namespace Identity.Controllers
       var appTagFilter = new Application.Contracts.TagFilter
       {
         Groups = tagFilter.Groups,
-        OnlyNew = tagFilter.OnlyNew
+        OnlyNew = tagFilter.OnlyNew,
+        Inactive = tagFilter.Inactive
       };
       return clientRepository.ListClients(appTagFilter, filter, skip, take);
     }
