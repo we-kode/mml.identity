@@ -11,6 +11,8 @@ services:
     container_name: wekode.mml.identity
     restart: always
     user: ${UID}:${GUID}
+    environment:
+      INSTANCE: ${INSTANCE}
     volumes:
       - ${VOL_CERTS}:/etc/ssl/certs:ro,z
       - ${APPSETTINGS}:/configs/appsettings.json:ro,Z

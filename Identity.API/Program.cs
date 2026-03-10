@@ -35,6 +35,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration
   .AddJsonFile(builder.Environment.IsEnvironment("Test") ? "./test.appsettings.json" : "/configs/appsettings.json");
 
+// Check if instance is provided
+if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("INSTANCE")))
+{
+  throw new ArgumentNullException("INSTANCE", "Instance configuration is required");
+}
+
 #region services
 // Add services to the container.
 builder.Services.AddScoped<GroupExistsFilter>();
