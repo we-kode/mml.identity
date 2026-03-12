@@ -1,5 +1,5 @@
 services:
-  wekode.mml.identity:
+  wekode.mml.identity.test:
     image: ${IMAGE}
     build:
       context: .
@@ -8,7 +8,7 @@ services:
         - UID=${UID}
         - GID=${GUID}
         - DOT_NET_BUILD_CONFIG=${DOT_NET_BUILD_CONFIG}
-    container_name: wekode.mml.identity
+    container_name: wekode.mml.identity.test
     restart: always
     user: ${UID}:${GUID}
     environment:
@@ -18,7 +18,7 @@ services:
       - ${APPSETTINGS}:/configs/appsettings.json:ro,Z
       - /etc/localtime:/etc/localtime:ro
     networks:
-      - wekode.mml
+      - wekode.mml.test
     logging:
       driver: "json-file"
       options:
@@ -27,5 +27,5 @@ services:
         max-file: "${LOG_MAX_FILE}"
 
 networks:
-  wekode.mml:
+  wekode.mml.test:
     external: true
