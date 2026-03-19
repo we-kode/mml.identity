@@ -2,6 +2,8 @@ using Asp.Versioning;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Identity.Application.Services;
+using Identity.Application.Types;
+using Identity.Application.Utils;
 using Identity.DBContext;
 using Identity.DBContext.Models;
 using Identity.Filters;
@@ -24,8 +26,6 @@ using Rebus.Config;
 using Rebus.Transport.InMem;
 using ScottBrady91.AspNetCore.Identity;
 using System;
-using System.IO;
-using System.Security.Cryptography.X509Certificates;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 using static OpenIddict.Server.OpenIddictServerEvents;
 
@@ -37,6 +37,10 @@ builder.Configuration
 
 var instance = Identity.Application.IdentityConstants.Env.INSTANCE;
 Console.WriteLine($"Starting up instance '{instance}'");
+
+// If certs do not exists create them on start.
+CertificateHelper.Ensure(KeyType.Signing);
+CertificateHelper.Ensure(KeyType.Encryption);
 
 #region services
 // Add services to the container.
@@ -208,13 +212,11 @@ builder.Services.AddOpenIddict()
       if (builder.Environment.IsEnvironment("Test"))
       {
         options.AddEphemeralSigningKey();
-      }
-      else
+        options.AddEphemeralEncryptionKey();
+      } else
       {
-        var signingCert = X509CertificateLoader.LoadPkcs12(File.ReadAllBytes(builder.Configuration["OpenId:SigningCert"] ?? throw new ArgumentNullException("OpenId:SigningCert")), null);
-        var encryptCert = X509CertificateLoader.LoadPkcs12(File.ReadAllBytes(builder.Configuration["OpenId:EncryptionCert"] ?? throw new ArgumentNullException("OpenId:EncryptionCert")), null);
-        options.AddSigningCertificate(signingCert);
-        options.AddEncryptionCertificate(encryptCert);
+        options.AddSigningCertificate(CertificateHelper.Load(KeyType.Signing));
+        options.AddEncryptionCertificate(CertificateHelper.Load(KeyType.Encryption));
       }
 
       var openidBuilder = options.UseAspNetCore()

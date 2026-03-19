@@ -17,8 +17,6 @@
     "Password": "<password>"
   },
   "OpenId": {
-    "EncryptionCert": "/certs/identity.encrypt.pfx",
-    "SigningCert": "/certs/identity.sign.pfx",
     "AccessTokenLifetimeMinutes": "60",
     "RefreshTokenLifetimeMinutes": "43200",
     "RefreshTokenReuseLeewaySeconds": "10",
