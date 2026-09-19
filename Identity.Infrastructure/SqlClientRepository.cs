@@ -62,7 +62,7 @@ namespace Identity.Infrastructure
       };
     }
 
-    public void DeleteClient(string id)
+    public async Task DeleteClient(string id)
     {
       using var context = contextFactory();
       var client = context.Applications.FirstOrDefault(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == id);
@@ -75,10 +75,10 @@ namespace Identity.Infrastructure
       context.Authorizations.RemoveRange(context.Authorizations.Where(authorization => authorization.Application == client));
       context.Applications.Remove(client);
       context.SaveChanges();
-      eventBus.Publish(new ClientStateUpdated(id));
+      await eventBus.Publish(new ClientStateUpdated(id));
     }
 
-    public void Update(Client client)
+    public async Task Update(Client client)
     {
       using var context = contextFactory();
 
@@ -115,7 +115,7 @@ namespace Identity.Infrastructure
       }
 
       context.SaveChanges();
-      eventBus.Publish(new ClientStateUpdated(client.ClientId));
+      await eventBus.Publish(new ClientStateUpdated(client.ClientId));
     }
 
     public string? GetPublicKey(string clientId)
@@ -151,6 +151,7 @@ namespace Identity.Infrastructure
 
       context.Applications.Add(client);
       await context.SaveChangesAsync().ConfigureAwait(false);
+      await eventBus.Publish(new ClientStateUpdated(client.ClientId));
     }
 
     public bool AdminAppExists()

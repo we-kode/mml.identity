@@ -1,10 +1,10 @@
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
-ARG USERNAME=mml
+#ARG USERNAME=mml
 ARG UID
 ARG GID
-RUN groupadd --gid $GID $USERNAME \
-    && useradd --uid $UID --gid $GID -m $USERNAME
-USER $USERNAME
+#RUN groupadd --gid $GID $USERNAME \
+#    && useradd --uid $UID --gid $GID -m $USERNAME
+#USER $USERNAME
 RUN apt-get update && apt-get install -y libgssapi-krb5-2 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 EXPOSE 5051
