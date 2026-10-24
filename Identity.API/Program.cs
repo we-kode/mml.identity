@@ -2,6 +2,8 @@ using Asp.Versioning;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Identity.Application.Services;
+using Identity.Application.Types;
+using Identity.Application.Utils;
 using Identity.DBContext;
 using Identity.DBContext.Models;
 using Identity.Filters;
@@ -24,8 +26,6 @@ using Rebus.Config;
 using Rebus.Transport.InMem;
 using ScottBrady91.AspNetCore.Identity;
 using System;
-using System.IO;
-using System.Security.Cryptography.X509Certificates;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 using static OpenIddict.Server.OpenIddictServerEvents;
 
@@ -34,6 +34,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration
   .AddJsonFile(builder.Environment.IsEnvironment("Test") ? "./test.appsettings.json" : "/configs/appsettings.json");
+
+var instance = Identity.Application.IdentityConstants.Env.INSTANCE;
+Console.WriteLine($"Starting up instance '{instance}'");
+
+// If certs do not exists create them on start. Tests use ephemeral keys instead.
+if (!builder.Environment.IsEnvironment("Test"))
+{
+  CertificateHelper.Ensure(KeyType.Signing);
+  CertificateHelper.Ensure(KeyType.Encryption);
+}
 
 #region services
 // Add services to the container.
@@ -92,7 +102,7 @@ if (!builder.Environment.IsEnvironment("Test"))
   }
 
   builder.Services.AddRebus(configure =>
-      configure.Transport(t => t.UseRabbitMq(mBusConnection, "mml.indentity.queue"))
+      configure.Transport(t => t.UseRabbitMq(mBusConnection, "mml.identity.queue"))
   );
 }
 else
@@ -154,14 +164,20 @@ builder.Services.AddAuthorizationBuilder()
   {
     policy.AddAuthenticationSchemes(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
     policy.RequireAuthenticatedUser();
-    policy.RequireClaim(OpenIddictConstants.Claims.Role, Identity.Application.IdentityConstants.Roles.Admin);
+    policy.RequireClaim(Claims.Role, Identity.Application.IdentityConstants.Roles.Admin);
   })
   .AddPolicy(Identity.Application.IdentityConstants.Roles.Client, policy =>
   {
     policy.AddAuthenticationSchemes(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
     policy.RequireAuthenticatedUser();
-    policy.RequireClaim(OpenIddictConstants.Claims.Role, Identity.Application.IdentityConstants.Roles.Client);
+    policy.RequireClaim(Claims.Role, Identity.Application.IdentityConstants.Roles.Client);
+  })
+  .AddPolicy(Identity.Application.IdentityConstants.Scopes.IdentityInternal, policy =>
+  {
+    policy.RequireAuthenticatedUser();
+    policy.RequireClaim(Claims.Scope, Identity.Application.IdentityConstants.Scopes.IdentityInternal);
   });
+
 builder.Services.AddOpenIddict()
     .AddCore(options =>
     {
@@ -181,10 +197,12 @@ builder.Services.AddOpenIddict()
       options.SetIssuer(new Uri(builder.Configuration["OpenId:Issuer"] ?? throw new ArgumentNullException("OpenId:Issuer")));
       options.SetTokenEndpointUris("api/v1.0/identity/connect/token")
              .SetUserInfoEndpointUris("api/v1.0/identity/connect/userinfo")
-             .SetEndSessionEndpointUris("api/v1.0/identity/connect/logout")
-             .SetIntrospectionEndpointUris("api/v1.0/identity/connect/introspect");
+             .SetEndSessionEndpointUris("api/v1.0/identity/connect/logout");
 
-      options.UseReferenceAccessTokens();
+      // Do not use refernce tokens. We will use jwts instead.
+      options.DisableAccessTokenEncryption();
+
+      // use reference tokens for refresh
       options.UseReferenceRefreshTokens();
 
       options.AddEventHandler<ApplyTokenResponseContext>(builder =>
@@ -196,15 +214,12 @@ builder.Services.AddOpenIddict()
 
       if (builder.Environment.IsEnvironment("Test"))
       {
-        options.AddEphemeralEncryptionKey()
-               .AddEphemeralSigningKey();
-      }
-      else
+        options.AddEphemeralSigningKey();
+        options.AddEphemeralEncryptionKey();
+      } else
       {
-        var signingCert = X509CertificateLoader.LoadPkcs12(File.ReadAllBytes(builder.Configuration["OpenId:SigningCert"] ?? throw new ArgumentNullException("OpenId:SigningCert")), null);
-        var encryptCert = X509CertificateLoader.LoadPkcs12(File.ReadAllBytes(builder.Configuration["OpenId:EncryptionCert"] ?? throw new ArgumentNullException("OpenId:EncryptionCert")), null);
-        options.AddSigningCertificate(signingCert)
-               .AddEncryptionCertificate(encryptCert);
+        options.AddSigningCertificate(CertificateHelper.Load(KeyType.Signing));
+        options.AddEncryptionCertificate(CertificateHelper.Load(KeyType.Encryption));
       }
 
       var openidBuilder = options.UseAspNetCore()
@@ -221,6 +236,7 @@ builder.Services.AddOpenIddict()
     {
       options.UseLocalServer();
       options.UseAspNetCore();
+      options.AddAudiences($"{Identity.Application.IdentityConstants.Scopes.IdentityService}/{instance?.ToLower()}");
     });
 #endregion
 
@@ -314,6 +330,19 @@ app.MapHub<RegisterClientHub>("/hub/client");
 
 // Create api clients if not exist
 using var scope = app.Services.CreateScope();
+var scopeManager = scope.ServiceProvider.GetRequiredService<IOpenIddictScopeManager>();
+if (await scopeManager.FindByNameAsync(Identity.Application.IdentityConstants.Scopes.IdentityInternal) is null)
+{
+  await scopeManager.CreateAsync(new OpenIddictScopeDescriptor
+  {
+    Name = Identity.Application.IdentityConstants.Scopes.IdentityInternal,
+    Resources =
+    {
+         $"{Identity.Application.IdentityConstants.Scopes.IdentityService}/{instance?.ToLower()}"
+    }
+  });
+}
+
 var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
 var apiClientsSection = app.Configuration.GetSection("ApiClients");
 foreach (IConfigurationSection apiClient in apiClientsSection.GetChildren())
@@ -328,7 +357,9 @@ foreach (IConfigurationSection apiClient in apiClientsSection.GetChildren())
       ClientSecret = secret,
       Permissions =
       {
-        Permissions.Endpoints.Introspection
+        Permissions.Endpoints.Token,
+        Permissions.GrantTypes.ClientCredentials,
+        Permissions.Prefixes.Scope + Identity.Application.IdentityConstants.Scopes.IdentityInternal,
       }
     });
   }

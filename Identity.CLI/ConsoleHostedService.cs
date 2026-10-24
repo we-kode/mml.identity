@@ -8,7 +8,7 @@ namespace Identity.CLI
 {
   public class ConsoleHostedService(IHostApplicationLifetime appLifetime, IIdentityRepository identityRepository, IClientRepository clientRepository) : IHostedService
   {
-    public Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
       appLifetime.ApplicationStarted.Register(() =>
         {
@@ -51,7 +51,7 @@ namespace Identity.CLI
                       Console.WriteLine("Invalid Client id.");
                       return;
                     }
-                    adminClient.DeleteAdminAppClient(clientId);
+                    await adminClient.DeleteAdminAppClient(clientId);
                     return;
                   }
                   Console.WriteLine("Please enter client id.");
@@ -72,8 +72,6 @@ namespace Identity.CLI
             }
           });
         });
-
-      return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)

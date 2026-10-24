@@ -1,7 +1,6 @@
 using Identity.Application.Contracts;
 using Identity.Application.IdentityConstants;
 using Identity.Application.Services;
-using Identity.Extensions;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -11,7 +10,6 @@ using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
 using System;
-using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -64,7 +62,7 @@ namespace Identity.Controllers
         }
         var claimsPrincipal = new ClaimsPrincipal(identity);
         claimsPrincipal.SetScopes(request.GetScopes());
-        claimsPrincipal.SetResources(clientRepository.GetApiClients());
+        claimsPrincipal.SetResources($"{Application.IdentityConstants.Scopes.MediaService}/{Env.INSTANCE}", $"{Application.IdentityConstants.Scopes.IdentityService}/{Env.INSTANCE}");
         claimsPrincipal.SetDestinations(static claim => claim.Type switch
         {
           // Allow the "name" claim to be stored in both the access and identity tokens
@@ -97,56 +95,49 @@ namespace Identity.Controllers
           return Unauthorized();
         }
 
-        foreach (var claim in principal.Claims)
-        {
-          claim.SetDestinations(claim.GetDestinations(principal));
-        }
-        principal.SetResources(clientRepository.GetApiClients());
-
         // Returning a SignInResult will ask OpenIddict to issue the appropriate access/identity tokens.
         return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
       }
 
       if (request.IsClientCredentialsGrantType())
       {
-
         var client = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, null, Claims.Role);
         client.SetClaim(Claims.Subject, request.ClientId!);
 
-        if (string.IsNullOrEmpty(request.CodeChallenge))
+        if (!clientRepository.IsApiClient(request.ClientId!, request.ClientSecret ?? string.Empty))
         {
-          return Unauthorized();
-        }
+          if (string.IsNullOrEmpty(request.CodeChallenge))
+          {
+            return Unauthorized();
+          }
 
-        // check if signature is valid with public key saved for client id
-        var pubKeyStringB64 = clientRepository.GetPublicKey(request.ClientId!);
-        if (string.IsNullOrEmpty(pubKeyStringB64))
-        {
-          return Unauthorized();
-        }
+          // check if signature is valid with public key saved for client id
+          var pubKeyStringB64 = clientRepository.GetPublicKey(request.ClientId!);
+          if (string.IsNullOrEmpty(pubKeyStringB64))
+          {
+            return Unauthorized();
+          }
 
-        var pubKey = Convert.FromBase64String(pubKeyStringB64);
-        var rsa = RSA.Create();
-        rsa.ImportRSAPublicKey(pubKey, out int _);
-        /*
-         * signature must be made over the following string to be marked as valid
-         * { "clientId" : "<id of client>", "clientSecret" : "<secret of client>", "grant_type" : "client_credentials" }
-         */
-        var content = $"{{\"grant_type\":\"client_credentials\",\"client_id\":\"{request.ClientId}\",\"client_secret\":\"{request.ClientSecret}\"}}";
-        var isValidSignature = rsa!.VerifyData(Encoding.UTF8.GetBytes(content), Convert.FromBase64String(request.CodeChallenge!), HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1);
-        if (!isValidSignature)
-        {
-          return Unauthorized();
+          var pubKey = Convert.FromBase64String(pubKeyStringB64);
+          var rsa = RSA.Create();
+          rsa.ImportRSAPublicKey(pubKey, out int _);
+          /*
+           * signature must be made over the following string to be marked as valid
+           * { "clientId" : "<id of client>", "clientSecret" : "<secret of client>", "grant_type" : "client_credentials" }
+           */
+          var content = $"{{\"grant_type\":\"client_credentials\",\"client_id\":\"{request.ClientId}\",\"client_secret\":\"{request.ClientSecret}\"}}";
+          var isValidSignature = rsa!.VerifyData(Encoding.UTF8.GetBytes(content), Convert.FromBase64String(request.CodeChallenge!), HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1);
+          if (!isValidSignature)
+          {
+            return Unauthorized();
+          }
         }
 
         client.SetClaim(Claims.Role, Roles.Client);
 
-        var dbClient = clientRepository.GetClient(request.ClientId!);
-        client.SetClaims(IdentityClaims.ClientGroup, [.. dbClient.Groups.Select(g => g.Id.ToString())]);
-
         var claimsPrincipal = new ClaimsPrincipal(client);
         claimsPrincipal.SetScopes(request.GetScopes());
-        claimsPrincipal.SetResources(clientRepository.GetApiClients());
+        claimsPrincipal.SetResources($"{Application.IdentityConstants.Scopes.MediaService}/{Env.INSTANCE}", $"{Application.IdentityConstants.Scopes.IdentityService}/{Env.INSTANCE}");
         claimsPrincipal.SetDestinations(static claim => claim.Type switch
         {
           // Allow the "name" claim to be stored in both the access and identity tokens

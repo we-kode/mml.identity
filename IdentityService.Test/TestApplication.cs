@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Abstractions;
 using System;
@@ -30,6 +31,7 @@ namespace IdentityService.Test
       oAuthCLient.Permissions.Add("scp:offline_access");
 
       Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Test");
+      Environment.SetEnvironmentVariable("INSTANCE", "test");
 
       var memoryDBName = Guid.NewGuid().ToString();
 
@@ -40,9 +42,15 @@ namespace IdentityService.Test
 
             builder.ConfigureServices(services =>
             {
-              var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<ApplicationDBContext>));
-
-              services.Remove(descriptor!);
+              // replace the npgsql provider including its options configuration by the in memory provider.
+              var descriptors = services
+                .Where(d => d.ServiceType == typeof(DbContextOptions<ApplicationDBContext>)
+                  || d.ServiceType == typeof(IDbContextOptionsConfiguration<ApplicationDBContext>))
+                .ToList();
+              foreach (var descriptor in descriptors)
+              {
+                services.Remove(descriptor);
+              }
 
               services.AddDbContext<ApplicationDBContext>(options =>
               {

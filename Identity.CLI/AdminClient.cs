@@ -1,5 +1,6 @@
 ﻿using Identity.Application.Contracts;
 using System;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace Identity.CLI
@@ -36,9 +37,9 @@ namespace Identity.CLI
     /// Removes one admin app client
     /// </summary>
     /// <param name="clientId">Id of the client to be removed</param>
-    public void DeleteAdminAppClient(Guid clientId)
+    public async Task DeleteAdminAppClient(Guid clientId)
     {
-      clientRepository.DeleteClient(clientId.ToString());
+      await clientRepository.DeleteClient(clientId.ToString());
       Console.WriteLine($"Client {clientId} deleted!");
     }
 

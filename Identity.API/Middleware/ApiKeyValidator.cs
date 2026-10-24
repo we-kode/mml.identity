@@ -2,8 +2,6 @@ using Identity.Application.Contracts;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
-using OpenIddict.Abstractions;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace Identity.Middleware

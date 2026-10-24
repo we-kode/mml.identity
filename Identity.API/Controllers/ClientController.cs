@@ -72,11 +72,11 @@ namespace Identity.Controllers
     /// <param name="ids">ids of the clients to be removed.</param>
     [HttpPost("deleteList")]
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
-    public IActionResult DeleteList([FromBody] IList<string> ids)
+    public async Task<IActionResult> DeleteList([FromBody] IList<string> ids)
     {
       foreach (var id in ids)
       {
-        clientRepository.DeleteClient(id);
+        await clientRepository.DeleteClient(id);
       }
 
       return Ok();
@@ -111,9 +111,9 @@ namespace Identity.Controllers
     /// <param name="id">id of the client to be removed.</param>
     [HttpDelete("{id}")]
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
-    public IActionResult Delete(string id)
+    public async Task<IActionResult> Delete(string id)
     {
-      clientRepository.DeleteClient(id);
+      await clientRepository.DeleteClient(id);
       return Ok();
     }
 
@@ -144,14 +144,14 @@ namespace Identity.Controllers
     [HttpPost()]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
-    public IActionResult Post([FromBody] ClientUpdateRequest request)
+    public async Task<IActionResult> Post([FromBody] ClientUpdateRequest request)
     {
       if (!clientRepository.ClientExists(request.ClientId.ToString()))
       {
         return NotFound();
       }
 
-      clientRepository.Update(new Client(request.ClientId.ToString(), request.DisplayName, request.DeviceIdentifier, request.Groups));
+      await clientRepository.Update(new Client(request.ClientId.ToString(), request.DisplayName, request.DeviceIdentifier, request.Groups));
       return Ok();
     }
 
@@ -188,10 +188,10 @@ namespace Identity.Controllers
     /// </summary>
     [HttpPost("removeRegistration")]
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Client)]
-    public IActionResult RemoveRegistration()
+    public async Task<IActionResult> RemoveRegistration()
     {
       var clientId = HttpContext.User.GetClaim(Claims.Subject) ?? "";
-      clientRepository.DeleteClient(clientId);
+      await clientRepository.DeleteClient(clientId);
       return Ok();
     }
 

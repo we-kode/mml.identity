@@ -20,19 +20,11 @@ namespace Identity.Controllers
   [ApiVersion("1.0")]
   [Route("api/v{version:apiVersion}/identity/[controller]")]
   [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
-  public class GroupController : ControllerBase
+  public class GroupController(
+    IGroupRepository repository,
+    IStringLocalizer<ValidationMessages> localizer
+    ) : ControllerBase
   {
-    private IGroupRepository _repository;
-    private IStringLocalizer<ValidationMessages> _localizer;
-
-    public GroupController(
-      IGroupRepository repository,
-      IStringLocalizer<ValidationMessages> localizer
-    )
-    {
-      _repository = repository;
-      _localizer = localizer;
-    }
 
     /// <summary>
     /// Loads a list of existing groups.
@@ -44,7 +36,7 @@ namespace Identity.Controllers
     [HttpGet()]
     public ActionResult<Groups> List([FromQuery] string? filter, [FromQuery] int skip = Application.IdentityConstants.List.Skip, [FromQuery] int take = Application.IdentityConstants.List.Take)
     {
-      return _repository.ListGroups(filter, skip, take);
+      return repository.ListGroups(filter, skip, take);
     }
 
     /// <summary>
@@ -58,7 +50,7 @@ namespace Identity.Controllers
     [ServiceFilter(typeof(GroupExistsFilter))]
     public async Task<ActionResult<Group>> Get(Guid id)
     {
-      return await _repository.GetGroup(id).ConfigureAwait(false);
+      return await repository.GetGroup(id).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -70,11 +62,11 @@ namespace Identity.Controllers
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] GroupRequest request)
     {
-      if (await _repository.GroupExists(request.Name).ConfigureAwait(false))
+      if (await repository.GroupExists(request.Name).ConfigureAwait(false))
       {
         ModelState.AddModelError(
           nameof(GroupRequest.Name),
-          _localizer[nameof(ValidationMessages.Unique)]
+          localizer[nameof(ValidationMessages.Unique)]
         );
       }
 
@@ -83,7 +75,7 @@ namespace Identity.Controllers
         return ValidationProblem();
       }
 
-      var group = await _repository
+      var group = await repository
         .CreateNewGroup(request.Name, request.IsDefault)
         .ConfigureAwait(false);
       return Created($"/group/{group.Id}", group);
@@ -98,11 +90,11 @@ namespace Identity.Controllers
     [ServiceFilter(typeof(GroupExistsFilter))]
     public async Task<IActionResult> Post(Guid id, [FromBody] GroupRequest request)
     {
-      if (await _repository.GroupExists(request.Name, id).ConfigureAwait(false))
+      if (await repository.GroupExists(request.Name, id).ConfigureAwait(false))
       {
         ModelState.AddModelError(
           nameof(GroupRequest.Name),
-          _localizer[nameof(ValidationMessages.Unique)]
+          localizer[nameof(ValidationMessages.Unique)]
         );
       }
 
@@ -111,7 +103,7 @@ namespace Identity.Controllers
         return ValidationProblem();
       }
 
-      await _repository
+      await repository
         .UpdateGroup(new Group(id, request.Name, request.IsDefault))
         .ConfigureAwait(false);
       return Ok();
@@ -126,7 +118,7 @@ namespace Identity.Controllers
     {
       foreach (var id in ids)
       {
-        await _repository.DeleteGroup(id).ConfigureAwait(false);
+        await repository.DeleteGroup(id).ConfigureAwait(false);
       }
 
       return Ok();

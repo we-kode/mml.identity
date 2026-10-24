@@ -6,14 +6,19 @@ services:
       dockerfile: Identity.API/Dockerfile
       args:
         - UID=${UID}
-        - GID=${GUID}
+        - GID=${GID}
         - DOT_NET_BUILD_CONFIG=${DOT_NET_BUILD_CONFIG}
     container_name: wekode.mml.identity
     restart: always
-    user: ${UID}:${GUID}
+    user: ${UID}:${GID}
+    environment:
+      INSTANCE: ${INSTANCE}
+      ENCRYPT_SECRET: ${ENCRYPT_SECRET:-}
+      SIGN_SECRET: ${SIGN_SECRET:-}
     volumes:
       - ${VOL_CERTS}:/etc/ssl/certs:ro,z
       - ${APPSETTINGS}:/configs/appsettings.json:ro,Z
+      - ${IDENTITY_SECRETS_PATH}:/secrets
       - /etc/localtime:/etc/localtime:ro
     networks:
       - wekode.mml
