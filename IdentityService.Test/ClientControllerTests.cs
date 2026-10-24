@@ -58,7 +58,7 @@ namespace IdentityService.Test
     {
       // update existing client
       var clientId = Guid.NewGuid();
-      var payload = $"{{\"clientId\": \"{clientId}\", \"displayName\": \"abc\", \"deviceIdentifier\": \"apple\"}}";
+      var payload = $"{{\"clientId\": \"{clientId}\", \"displayName\": \"abc\", \"deviceIdentifier\": \"apple\", \"groups\": []}}";
       var content = new StringContent(payload, Encoding.UTF8, "application/json");
       var result = await client.PostAsync("/api/v1.0/identity/client", content, TestContext.Current.CancellationToken);
       Assert.Equal(HttpStatusCode.NotFound, result.StatusCode);

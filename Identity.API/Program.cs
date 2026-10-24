@@ -38,9 +38,12 @@ builder.Configuration
 var instance = Identity.Application.IdentityConstants.Env.INSTANCE;
 Console.WriteLine($"Starting up instance '{instance}'");
 
-// If certs do not exists create them on start.
-CertificateHelper.Ensure(KeyType.Signing);
-CertificateHelper.Ensure(KeyType.Encryption);
+// If certs do not exists create them on start. Tests use ephemeral keys instead.
+if (!builder.Environment.IsEnvironment("Test"))
+{
+  CertificateHelper.Ensure(KeyType.Signing);
+  CertificateHelper.Ensure(KeyType.Encryption);
+}
 
 #region services
 // Add services to the container.

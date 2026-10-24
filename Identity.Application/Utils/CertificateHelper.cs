@@ -21,21 +21,29 @@ public static class CertificateHelper
     {
       Generate(type, validDays: 18262);
     }
-
-    if (!File.Exists(GetFilePath(type)))
-    {
-      Generate(type, validDays: 18262);
-    }
   }
 
   /// <summary>
-  /// Loads the certificate of the given type.
+  /// Loads the certificate of the given type. A certificate stored without password is protected with the configured secret.
   /// </summary>
   /// <param name="type">The type of key to load.</param>
   /// <returns><see cref="X509Certificate2"/></returns>
   public static X509Certificate2 Load(KeyType type)
   {
-    return X509CertificateLoader.LoadPkcs12(File.ReadAllBytes(GetFilePath(type)), GetPassword(type));
+    var path = GetFilePath(type);
+    var password = GetPassword(type);
+    var data = File.ReadAllBytes(path);
+    try
+    {
+      return X509CertificateLoader.LoadPkcs12(data, password, X509KeyStorageFlags.Exportable);
+    }
+    catch (CryptographicException) when (!string.IsNullOrEmpty(password))
+    {
+      // certificates created before the secret was configured are stored without password.
+      var certificate = X509CertificateLoader.LoadPkcs12(data, null, X509KeyStorageFlags.Exportable);
+      File.WriteAllBytes(path, certificate.Export(X509ContentType.Pfx, password));
+      return certificate;
+    }
   }
 
   /// <summary>
@@ -69,7 +77,7 @@ public static class CertificateHelper
   {
     return type switch
     {
-      KeyType.Encryption => Environment.GetEnvironmentVariable("ENCRYPTION_SECRET"),
+      KeyType.Encryption => Environment.GetEnvironmentVariable("ENCRYPT_SECRET"),
       KeyType.Signing => Environment.GetEnvironmentVariable("SIGN_SECRET"),
       _ => null,
     };

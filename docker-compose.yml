@@ -6,11 +6,11 @@ services:
       dockerfile: Identity.API/Dockerfile
       args:
         - UID=${UID}
-        - GID=${GUID}
+        - GID=${GID}
         - DOT_NET_BUILD_CONFIG=${DOT_NET_BUILD_CONFIG}
     container_name: wekode.mml.identity
     restart: always
-    user: ${UID}:${GUID}
+    user: ${UID}:${GID}
     environment:
       INSTANCE: ${INSTANCE}
       ENCRYPT_SECRET: ${ENCRYPT_SECRET:-}
