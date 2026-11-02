@@ -39,8 +39,15 @@ RUN dotnet publish "Identity.csproj" -c ${DOT_NET_BUILD_CONFIG} -o /app/publish/
 WORKDIR "/src/Identity.CLI"
 RUN dotnet publish "Identity.CLI.csproj" -c ${DOT_NET_BUILD_CONFIG} -o /app/publish/cli
 
+# Third-party notices of all NuGet packages of the service and the CLI.
+FROM build AS licenses
+WORKDIR /src
+RUN dotnet tool install nuget-license --version 4.0.18 --tool-path /tools
+RUN echo '["Identity.API/Identity.csproj","Identity.CLI/Identity.CLI.csproj"]' > /tmp/projects.json &&     /tools/nuget-license -ji /tmp/projects.json -t -ignore WeKoDe.MML.Messages -o Markdown     -fo /licenses/THIRD-PARTY-NOTICES.md -d /licenses/texts
+
 FROM base AS final
 WORKDIR /app
 RUN mkdir -p /secrets
 COPY --from=publish /app/publish .
+COPY --from=licenses /licenses ./licenses
 ENTRYPOINT ["dotnet", "identity/Identity.dll"]
