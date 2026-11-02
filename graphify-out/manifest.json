@@ -42,26 +42,26 @@
     "semantic_hash": ""
   },
   "Identity.API/Controllers/AuthenticationController.cs": {
-    "mtime": 1773336199.4424896,
-    "seen": 1789824735.1768708,
+    "mtime": 1792861180.29766,
+    "seen": 1792861189.1219554,
     "ast_hash": "70de2b17eee85cae6d62148beec268a2",
     "semantic_hash": ""
   },
   "Identity.API/Controllers/ClientController.cs": {
-    "mtime": 1774273090.3000152,
-    "seen": 1789824735.1768708,
+    "mtime": 1792861180.309729,
+    "seen": 1792861189.1219554,
     "ast_hash": "22bb16d3258506dba046d97887001284",
     "semantic_hash": ""
   },
   "Identity.API/Controllers/ClientInfoController.cs": {
-    "mtime": 1773319925.656937,
-    "seen": 1789824735.1768708,
+    "mtime": 1792861180.3202415,
+    "seen": 1792861189.1219554,
     "ast_hash": "9f46f18c89821ac917ba88e34829cb8c",
     "semantic_hash": ""
   },
   "Identity.API/Controllers/GroupController.cs": {
-    "mtime": 1773308076.601307,
-    "seen": 1789824735.1768708,
+    "mtime": 1792861180.3520405,
+    "seen": 1792861189.1219554,
     "ast_hash": "3cce570e5d47fdd9f0533cbef2e72630",
     "semantic_hash": ""
   },
@@ -114,21 +114,21 @@
     "semantic_hash": ""
   },
   "Identity.API/Identity.csproj": {
-    "mtime": 1773949963.204856,
-    "seen": 1789824735.1768708,
-    "ast_hash": "a274d9ddf2975c57a576490d50f0e040",
+    "mtime": 1792861180.3786478,
+    "seen": 1792861189.1219554,
+    "ast_hash": "7ceb6af68ab35c7c0dbcf6dba6770fba",
     "semantic_hash": ""
   },
   "Identity.API/Middleware/ApiKeyValidator.cs": {
-    "mtime": 1773233016.7868948,
-    "seen": 1789824735.1768708,
-    "ast_hash": "85aadcaddf2918ac2e75debad382bee6",
+    "mtime": 1792861180.3953538,
+    "seen": 1792861189.1219554,
+    "ast_hash": "9fb47fa83d7c21b2427478a41e5ffd65",
     "semantic_hash": ""
   },
   "Identity.API/Program.cs": {
-    "mtime": 1773949270.008606,
-    "seen": 1789824735.1768708,
-    "ast_hash": "a727df13234cbbfbcbb17506e9621c1d",
+    "mtime": 1792861180.412922,
+    "seen": 1792861189.1219554,
+    "ast_hash": "c8d4c51eb5280c6c72a352f5dd7963e4",
     "semantic_hash": ""
   },
   "Identity.API/Properties/launchSettings.json": {
@@ -156,20 +156,20 @@
     "semantic_hash": ""
   },
   "Identity.API/default.appsettings.json": {
-    "mtime": 1773938751.7867198,
-    "seen": 1789824735.1768708,
+    "mtime": 1792861180.4254649,
+    "seen": 1792861189.1219554,
     "ast_hash": "020432c71c4578c06e1cc38f656e2d54",
     "semantic_hash": ""
   },
   "Identity.API/test.appsettings.json": {
-    "mtime": 1773938759.1793525,
-    "seen": 1789824735.1768708,
+    "mtime": 1792861180.4354784,
+    "seen": 1792861189.1219554,
     "ast_hash": "c7569e06bbd289e883d37bea0c7c5e37",
     "semantic_hash": ""
   },
   "Identity.Application/Contracts/IClientRepository.cs": {
-    "mtime": 1774273096.5804074,
-    "seen": 1789824735.1768708,
+    "mtime": 1792861180.447005,
+    "seen": 1792861189.1219554,
     "ast_hash": "aa739545e7a8672baa78f22e17c342b8",
     "semantic_hash": ""
   },
@@ -198,8 +198,8 @@
     "semantic_hash": ""
   },
   "Identity.Application/IdentityConstants/Env.cs": {
-    "mtime": 1773335919.799621,
-    "seen": 1789824735.1768708,
+    "mtime": 1792861180.464533,
+    "seen": 1792861189.1219554,
     "ast_hash": "9643e5bdc47db3842f3b14c444197d39",
     "semantic_hash": ""
   },
@@ -228,8 +228,8 @@
     "semantic_hash": ""
   },
   "Identity.Application/IdentityConstants/Scopes.cs": {
-    "mtime": 1773328754.450843,
-    "seen": 1789824735.1768708,
+    "mtime": 1792861180.4715424,
+    "seen": 1792861189.1219554,
     "ast_hash": "15534537db712f3a37a20f37e939a8a6",
     "semantic_hash": ""
   },
@@ -288,20 +288,20 @@
     "semantic_hash": ""
   },
   "Identity.Application/Types/KeyType.cs": {
-    "mtime": 1773940380.7010114,
-    "seen": 1789824735.1768708,
+    "mtime": 1792861180.4795623,
+    "seen": 1792861189.1219554,
     "ast_hash": "e01a6ec5d4f1544914e48079c26d51fa",
     "semantic_hash": ""
   },
   "Identity.Application/Utils/CertificateHelper.cs": {
-    "mtime": 1773949329.913387,
-    "seen": 1789824735.1768708,
-    "ast_hash": "42195a26c03a2b731ad5f1ad76441b91",
+    "mtime": 1792861180.48958,
+    "seen": 1792861189.1219554,
+    "ast_hash": "e8d5b18182f5a040de7b4534f6bf7a20",
     "semantic_hash": ""
   },
   "Identity.CLI/AdminClient.cs": {
-    "mtime": 1774272979.9627066,
-    "seen": 1789824735.1768708,
+    "mtime": 1792861180.4965973,
+    "seen": 1792861189.1219554,
     "ast_hash": "ad60c8e059c3ff49e7c26605222499cf",
     "semantic_hash": ""
   },
@@ -312,8 +312,8 @@
     "semantic_hash": ""
   },
   "Identity.CLI/ConsoleHostedService.cs": {
-    "mtime": 1774272967.5455256,
-    "seen": 1789824735.1768708,
+    "mtime": 1792861180.504113,
+    "seen": 1792861189.1219554,
     "ast_hash": "ff79a7a407d450badf60c1f725177c0c",
     "semantic_hash": ""
   },
@@ -462,27 +462,15 @@
     "semantic_hash": ""
   },
   "Identity.DBContext/Migrations/20260312130218_UPDATE_Scopes.Designer.cs": {
-    "mtime": 1773320538.5501046,
-    "seen": 1789824735.1768708,
+    "mtime": 1792861180.5297272,
+    "seen": 1792861189.1219554,
     "ast_hash": "aa0fddd66ca5a4c1a699c2d4372148e6",
-    "semantic_hash": ""
-  },
-  "Identity.DBContext/Migrations/20260312130218_UPDATE_Scopes.cs": {
-    "mtime": 1773330178.779609,
-    "seen": 1789824735.1768708,
-    "ast_hash": "36e399b4bdaa937404dab1f0fb828753",
     "semantic_hash": ""
   },
   "Identity.DBContext/Migrations/ApplicationDBContextModelSnapshot.cs": {
     "mtime": 1773320538.5511093,
     "seen": 1789824735.1768708,
     "ast_hash": "6954e33485ecdc327eca2daee31b8191",
-    "semantic_hash": ""
-  },
-  "Identity.DBContext/Models/Group.cs": {
-    "mtime": 1773949963.0995488,
-    "seen": 1789824735.1768708,
-    "ast_hash": "47ed0f7f47eb7db65f41f2a85d8d24b5",
     "semantic_hash": ""
   },
   "Identity.DBContext/Models/OpenIddictClientApplication.cs": {
@@ -510,14 +498,14 @@
     "semantic_hash": ""
   },
   "Identity.Infrastructure/Identity.Infrastructure.csproj": {
-    "mtime": 1773336208.2902467,
-    "seen": 1789824735.1768708,
+    "mtime": 1792861180.5514345,
+    "seen": 1792861189.1219554,
     "ast_hash": "2dcdd5718d1d9597b959ca1ceab14aae",
     "semantic_hash": ""
   },
   "Identity.Infrastructure/SqlClientRepository.cs": {
-    "mtime": 1774272914.3286004,
-    "seen": 1789824735.1768708,
+    "mtime": 1792861180.5605807,
+    "seen": 1792861189.1219554,
     "ast_hash": "3ba80fecf21ef04df25abea99c271343",
     "semantic_hash": ""
   },
@@ -540,9 +528,21 @@
     "semantic_hash": ""
   },
   "docker-compose.yml": {
-    "mtime": 1773949931.5315077,
-    "seen": 1789824735.1768708,
-    "ast_hash": "fe08efdc6db200a0eaed11b9f635fe70",
+    "mtime": 1792861180.5967479,
+    "seen": 1792861189.1219554,
+    "ast_hash": "22f9df7a56e96ab840474ab25e80264e",
+    "semantic_hash": ""
+  },
+  "Identity.DBContext/Migrations/20260312130218_UPDATE_Scopes.cs": {
+    "mtime": 1792861180.5372388,
+    "seen": 1793631196.6504035,
+    "ast_hash": "36e399b4bdaa937404dab1f0fb828753",
+    "semantic_hash": ""
+  },
+  "Identity.DBContext/Models/Group.cs": {
+    "mtime": 1792861180.5439258,
+    "seen": 1793631196.6504035,
+    "ast_hash": "47ed0f7f47eb7db65f41f2a85d8d24b5",
     "semantic_hash": ""
   }
 }
