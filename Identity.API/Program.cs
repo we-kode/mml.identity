@@ -272,13 +272,21 @@ builder.Host.ConfigureContainer<ContainerBuilder>(cBuilder =>
 #endregion
 
 #region kestrel
+builder.Services.AddTrustedForwardedHeaders(builder.Configuration);
+var tlsCert = builder.Configuration["TLS:Cert"];
+var useTls = !string.IsNullOrWhiteSpace(tlsCert);
+if (!useTls)
+{
+  Console.WriteLine("No 'TLS:Cert' configured. Listening on http, TLS has to be terminated by the reverse proxy.");
+}
 builder.WebHost.ConfigureKestrel(options =>
 {
   options.ListenAnyIP(5051, listenOptions =>
   {
-    var cert = builder.Configuration["TLS:Cert"] ?? throw new ArgumentNullException("TLS:Cert");
-    var pwd = builder.Configuration["TLS:Password"] ?? throw new ArgumentNullException("TLS:Password");
-    listenOptions.UseHttps(cert, pwd);
+    if (useTls)
+    {
+      listenOptions.UseHttps(tlsCert!, builder.Configuration["TLS:Password"]);
+    }
   });
 });
 #endregion
@@ -300,6 +308,7 @@ if (!roleManager.RoleExistsAsync(Identity.Application.IdentityConstants.Roles.Ad
 #endregion
 
 #region middleware configuration
+app.UseForwardedHeaders();
 app.UseApiKeyValidation();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -319,7 +328,10 @@ var localizationOptions = new RequestLocalizationOptions()
     .AddSupportedUICultures(supportedCultures);
 
 app.UseRequestLocalization(localizationOptions);
-app.UseHttpsRedirection();
+if (useTls)
+{
+  app.UseHttpsRedirection();
+}
 app.UseRouting();
 app.UseCors();
 app.UseAuthentication();
