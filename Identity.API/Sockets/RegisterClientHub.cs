@@ -1,4 +1,5 @@
 ﻿using Identity.Application.IdentityConstants;
+using Identity.Extensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Distributed;
@@ -31,7 +32,7 @@ namespace Identity.Sockets
 
     public async Task UpdateRegistrationToken(string connectionId, string registrationToken)
     {
-      await hubContext.Clients.Group(connectionId).SendAsync("REGISTER_TOKEN_UPDATED", new RegistrationInformation(registrationToken, configuration[APP_KEY] ?? string.Empty)).ConfigureAwait(false);
+      await hubContext.Clients.Group(connectionId).SendAsync("REGISTER_TOKEN_UPDATED", new RegistrationInformation(registrationToken, configuration[APP_KEY] ?? string.Empty, configuration.GetServerName())).ConfigureAwait(false);
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)

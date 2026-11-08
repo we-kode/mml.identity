@@ -4,6 +4,7 @@ using Identity.Application.IdentityConstants;
 using Identity.Application.Models;
 using Identity.Application.Services;
 using Identity.Contracts;
+using Identity.Extensions;
 using Identity.Filters;
 using Identity.Sockets;
 using Microsoft.AspNetCore.Authorization;
@@ -156,7 +157,7 @@ namespace Identity.Controllers
     }
 
     /// <summary>
-    /// Returns server connection settings for a client.
+    /// Returns server connection settings for a client including the server name clients should connect to, if configured.
     /// </summary>
     [HttpGet("connection_settings")]
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
@@ -164,12 +165,13 @@ namespace Identity.Controllers
     {
       return new JsonResult(new
       {
-        ApiKey = configuration.GetValue("APP_KEY", string.Empty)
+        ApiKey = configuration.GetValue("APP_KEY", string.Empty),
+        ServerName = ServerName()
       });
     }
 
     /// <summary>
-    /// Returns whether the current authenticated client is a registered client.
+    /// Returns whether the current authenticated client is a registered client and the server name clients should connect to, if configured.
     /// </summary>
     [HttpGet()]
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Client)]
@@ -179,7 +181,8 @@ namespace Identity.Controllers
 
       return new JsonResult(new
       {
-        Registered = clientRepository.ClientExists(clientId)
+        Registered = clientRepository.ClientExists(clientId),
+        ServerName = ServerName()
       });
     }
 
@@ -228,5 +231,7 @@ namespace Identity.Controllers
       await hubContext.Clients.Group(conId!).SendAsync("CLIENT_REGISTERED", client.ClientId).ConfigureAwait(false);
       return client;
     }
+
+    private string? ServerName() => configuration.GetServerName();
   }
 }

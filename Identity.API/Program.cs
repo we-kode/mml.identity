@@ -6,6 +6,7 @@ using Identity.Application.Types;
 using Identity.Application.Utils;
 using Identity.DBContext;
 using Identity.DBContext.Models;
+using Identity.Extensions;
 using Identity.Filters;
 using Identity.Handlers;
 using Identity.Infrastructure;
@@ -37,6 +38,11 @@ builder.Configuration
 
 var instance = Identity.Application.IdentityConstants.Env.INSTANCE;
 Console.WriteLine($"Starting up instance '{instance}'");
+var serverName = builder.Configuration.GetServerName();
+if (!string.IsNullOrEmpty(serverName))
+{
+  Console.WriteLine($"Registered clients are moved to the server '{serverName}'.");
+}
 
 // If certs do not exists create them on start. Tests use ephemeral keys instead.
 if (!builder.Environment.IsEnvironment("Test"))
