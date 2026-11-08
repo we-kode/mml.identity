@@ -77,8 +77,8 @@ public static class CertificateHelper
   {
     return type switch
     {
-      KeyType.Encryption => Environment.GetEnvironmentVariable("ENCRYPT_SECRET"),
-      KeyType.Signing => Environment.GetEnvironmentVariable("SIGN_SECRET"),
+      KeyType.Encryption => SecretReader.Read("ENCRYPT_SECRET"),
+      KeyType.Signing => SecretReader.Read("SIGN_SECRET"),
       _ => null,
     };
   }

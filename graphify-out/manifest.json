@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "Identity.API/Program.cs": {
-    "mtime": 1792861180.412922,
-    "seen": 1792861189.1219554,
-    "ast_hash": "c8d4c51eb5280c6c72a352f5dd7963e4",
+    "mtime": 1794078834.2987976,
+    "seen": 1794079303.7080026,
+    "ast_hash": "eb0f8b14ad880ae20414e643518ae3c8",
     "semantic_hash": ""
   },
   "Identity.API/Properties/launchSettings.json": {
@@ -156,9 +156,9 @@
     "semantic_hash": ""
   },
   "Identity.API/default.appsettings.json": {
-    "mtime": 1792861180.4254649,
-    "seen": 1792861189.1219554,
-    "ast_hash": "020432c71c4578c06e1cc38f656e2d54",
+    "mtime": 1794079847.460293,
+    "seen": 1794081193.14624,
+    "ast_hash": "e8301f761fd3c900feaa27d8205d95a5",
     "semantic_hash": ""
   },
   "Identity.API/test.appsettings.json": {
@@ -294,9 +294,9 @@
     "semantic_hash": ""
   },
   "Identity.Application/Utils/CertificateHelper.cs": {
-    "mtime": 1792861180.48958,
-    "seen": 1792861189.1219554,
-    "ast_hash": "e8d5b18182f5a040de7b4534f6bf7a20",
+    "mtime": 1794081035.7453005,
+    "seen": 1794081193.14624,
+    "ast_hash": "e4bb1d7ec87b0b91db9f07287c709106",
     "semantic_hash": ""
   },
   "Identity.CLI/AdminClient.cs": {
@@ -528,9 +528,9 @@
     "semantic_hash": ""
   },
   "docker-compose.yml": {
-    "mtime": 1792861180.5967479,
-    "seen": 1792861189.1219554,
-    "ast_hash": "22f9df7a56e96ab840474ab25e80264e",
+    "mtime": 1794081109.185834,
+    "seen": 1794081193.1472614,
+    "ast_hash": "2b51907f29d4dfaabd65b50f62a594a8",
     "semantic_hash": ""
   },
   "Identity.DBContext/Migrations/20260312130218_UPDATE_Scopes.cs": {
@@ -543,6 +543,18 @@
     "mtime": 1792861180.5439258,
     "seen": 1793631196.6504035,
     "ast_hash": "47ed0f7f47eb7db65f41f2a85d8d24b5",
+    "semantic_hash": ""
+  },
+  "Identity.API/Middleware/TrustedForwardedHeadersExtensions.cs": {
+    "mtime": 1794078834.480415,
+    "seen": 1794079303.7080026,
+    "ast_hash": "b5aa7b72af5f7aed6633c4924d1f8d66",
+    "semantic_hash": ""
+  },
+  "Identity.Application/Utils/SecretReader.cs": {
+    "mtime": 1794081035.7972505,
+    "seen": 1794081193.14624,
+    "ast_hash": "65d31d7fd147fad3956e3b4001bfcb28",
     "semantic_hash": ""
   }
 }
