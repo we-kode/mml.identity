@@ -19,6 +19,9 @@
   "ForwardedHeaders": {
     "KnownNetworks": []
   },
+  "Connection": {
+    "ServerName": ""
+  },
   "OpenId": {
     "AccessTokenLifetimeMinutes": "60",
     "RefreshTokenLifetimeMinutes": "43200",
