@@ -1,5 +1,6 @@
 ﻿using Identity.DBContext;
 using Identity.DBContext.Models;
+using Identity.Extensions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -17,7 +18,7 @@ namespace IdentityService.Test
     public static readonly string UserName = "test@user.test";
     public static readonly string Password = "secret123456";
 
-    public static WebApplicationFactory<Program> Build()
+    public static WebApplicationFactory<Program> Build(string? serverName = null)
     {
       var oAuthCLient = new OpenIddictApplicationDescriptor
       {
@@ -39,6 +40,10 @@ namespace IdentityService.Test
           .WithWebHostBuilder(builder =>
           {
             builder.UseEnvironment("Test");
+            if (serverName != null)
+            {
+              builder.UseSetting(ServerNameExtensions.SERVER_NAME, serverName);
+            }
 
             builder.ConfigureServices(services =>
             {

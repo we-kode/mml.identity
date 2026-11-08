@@ -1,8 +1,10 @@
 ﻿using Identity.Application.Contracts;
 using Identity.Application.Models;
+using Identity.Extensions;
 using Identity.Sockets;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -229,6 +231,57 @@ namespace IdentityService.Test
       payload.Add(new KeyValuePair<string, string>("code_challenge", Convert.ToBase64String(rsa.SignData(Encoding.UTF8.GetBytes("random string"), HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1))));
       result = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload), TestContext.Current.CancellationToken);
       Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
+    }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("media.example.com", "media.example.com")]
+    public async Task Test_ServerName(string? serverName, string? expected)
+    {
+      var app = TestApplication.Build(serverName);
+      var http = app.CreateClient();
+      http.DefaultRequestHeaders.Add("App-Key", "def");
+
+      using var scope = app.Services.CreateScope();
+      var clientRepository = scope.ServiceProvider.GetRequiredService<IClientRepository>();
+      var rsa = RSA.Create();
+      await clientRepository.CreateClient("serverNameClient", "serverNameSecret", Convert.ToBase64String(rsa.ExportRSAPublicKey()), "ads", "apple");
+      var signatureString = "{\"grant_type\":\"client_credentials\",\"client_id\":\"serverNameClient\",\"client_secret\":\"serverNameSecret\"}";
+      var payload = new List<KeyValuePair<string, string>>
+      {
+        new("grant_type", "client_credentials"),
+        new("client_id", "serverNameClient"),
+        new("client_secret", "serverNameSecret"),
+        new("code_challenge", Convert.ToBase64String(rsa.SignData(Encoding.UTF8.GetBytes(signatureString), HashAlgorithmName.SHA512, RSASignaturePadding.Pkcs1)))
+      };
+      dynamic token = JObject.Parse(await (await http.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload), TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+      http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", (string)token.access_token);
+
+      dynamic registered = JObject.Parse(await http.GetStringAsync("/api/v1.0/identity/client", TestContext.Current.CancellationToken));
+      Assert.True((bool)registered.registered);
+      Assert.Equal(expected, (string?)registered.serverName);
+    }
+
+    [Theory]
+    [InlineData("media.example.com:5050", "media.example.com:5050")]
+    [InlineData(" media.example.com ", "media.example.com")]
+    [InlineData("", null)]
+    public void Test_GetServerName_Valid(string value, string? expected)
+    {
+      var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { [ServerNameExtensions.SERVER_NAME] = value }).Build();
+      Assert.Equal(expected, configuration.GetServerName());
+    }
+
+    [Theory]
+    [InlineData("https://media.example.com")]
+    [InlineData("media.example.com/api")]
+    [InlineData("media.example.com:443")]
+    [InlineData("user@media.example.com")]
+    [InlineData("media example.com")]
+    public void Test_GetServerName_Invalid(string value)
+    {
+      var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { [ServerNameExtensions.SERVER_NAME] = value }).Build();
+      Assert.Throws<InvalidOperationException>(() => configuration.GetServerName());
     }
   }
 }
