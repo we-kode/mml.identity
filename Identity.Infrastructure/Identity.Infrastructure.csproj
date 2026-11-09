@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="CryptoHelper" Version="4.0.0" />
-    <PackageReference Include="Rebus" Version="8.9.0" />
+    <PackageReference Include="Rebus" Version="8.9.5" />
     <PackageReference Include="WeKoDe.MML.Messages" Version="1.4.0" />
   </ItemGroup>
 
