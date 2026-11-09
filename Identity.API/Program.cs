@@ -156,7 +156,6 @@ builder.Services.Configure<DataProtectionTokenProviderOptions>(o =>
 #region authentication
 builder.Services.AddQuartz(options =>
 {
-  options.SchedulerName = $"QuartzScheduler-{Guid.NewGuid()}";
   options.UseSimpleTypeLoader();
   options.UseInMemoryStore();
 });

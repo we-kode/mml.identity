@@ -24,11 +24,11 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3">
       <TreatAsUsed>true</TreatAsUsed>
     </PackageReference>
-    <PackageReference Include="OpenIddict.AspNetCore" Version="7.2.0" />
-    <PackageReference Include="OpenIddict.EntityFrameworkCore" Version="7.2.0" />
-    <PackageReference Include="OpenIddict.Quartz" Version="7.2.0" />
+    <PackageReference Include="OpenIddict.AspNetCore" Version="7.8.0" />
+    <PackageReference Include="OpenIddict.EntityFrameworkCore" Version="7.8.0" />
+    <PackageReference Include="OpenIddict.Quartz" Version="7.8.0" />
     <PackageReference Include="PasswordGenerator" Version="3.0.0" />
-    <PackageReference Include="Quartz.Extensions.Hosting" Version="3.15.1" />
+    <PackageReference Include="Quartz" Version="4.7.3" />
     <PackageReference Include="Rebus" Version="8.9.5" />
     <PackageReference Include="Rebus.RabbitMq" Version="10.1.2" />
     <PackageReference Include="Rebus.ServiceProvider" Version="10.7.2" />
