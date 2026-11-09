@@ -44,6 +44,8 @@ FROM build AS licenses
 WORKDIR /src
 RUN dotnet tool install nuget-license --version 4.0.18 --tool-path /tools
 RUN echo '["Identity.API/Identity.csproj","Identity.CLI/Identity.CLI.csproj"]' > /tmp/projects.json &&     /tools/nuget-license -ji /tmp/projects.json -t -ignore WeKoDe.MML.Messages -o Markdown     -fo /licenses/THIRD-PARTY-NOTICES.md -d /licenses/texts
+# Content embedded in NuGet packages under a license other than the package license.
+RUN printf '\n## Embedded content\n\n| Content | Contained in | Copyright | License |\n| --- | --- | --- | --- |\n| [EFF Large Wordlist](https://www.eff.org/dice) | PasswordGenerator | Electronic Frontier Foundation | [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) |\n' >> /licenses/THIRD-PARTY-NOTICES.md
 
 FROM base AS final
 WORKDIR /app

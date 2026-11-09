@@ -135,7 +135,7 @@ namespace Identity.Infrastructure
       var client = new OpenIddictClientApplication
       {
         ClientId = clientId,
-        ClientSecret = Crypto.HashPassword(clientSecret),
+        ClientSecret = PasswordHasher.HashPassword(clientSecret),
         PublicKey = b64PublicKey,
         Permissions = JsonSerializer.Serialize(new[]
         {
@@ -238,7 +238,7 @@ namespace Identity.Infrastructure
       var client = context.Applications.FirstOrDefault(app => app.ClientType == ClientTypes.Confidential && string.IsNullOrWhiteSpace(app.DeviceIdentifier) &&
         !string.IsNullOrEmpty(app.ClientId) && app.ClientId == clientId
       );
-      return client != null && Crypto.VerifyHashedPassword(client.ClientSecret, clientSecret);
+      return client != null && PasswordHasher.VerifyHashedPassword(client.ClientSecret, clientSecret);
     }
 
     public IList<string> GetApiClients()
