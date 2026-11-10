@@ -1,4 +1,5 @@
 using Asp.Versioning;
+using Asp.Versioning.ApiExplorer;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Identity.Application.Services;
@@ -26,6 +27,7 @@ using Quartz;
 using Rebus.Config;
 using Rebus.Transport.InMem;
 using ScottBrady91.AspNetCore.Identity;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 using static OpenIddict.Server.OpenIddictServerEvents;
@@ -68,19 +70,24 @@ if (!builder.Environment.IsEnvironment("Test"))
 }
 builder.Services.AddApiVersioning(config =>
 {
-  config.DefaultApiVersion = new ApiVersion(1, 0);
-  config.AssumeDefaultVersionWhenUnspecified = true;
+  config.ApiVersionReader = new UrlSegmentApiVersionReader();
+}).AddMvc().AddApiExplorer(options =>
+{
+  options.GroupNameFormat = "'v'VV";
+  options.SubstituteApiVersionInUrl = true;
+  options.SubstitutionFormat = "VV";
 });
 builder.Services.AddEndpointsApiExplorer();
 if (builder.Environment.IsDevelopment())
 {
   // configuring Swagger/OpenAPI. More at https://aka.ms/aspnetcore/swashbuckle
-  builder.Services.AddSwaggerGen(config =>
+  builder.Services.AddSwaggerGen(config => config.EnableAnnotations());
+  builder.Services.AddOptions<SwaggerGenOptions>().Configure<IApiVersionDescriptionProvider>((config, provider) =>
   {
-    config.SwaggerDoc("v1.0", new OpenApiInfo { Title = "Identity Api", Version = "v1.0" });
-    config.OperationFilter<RemoveVersionParameterFilter>();
-    config.DocumentFilter<ReplaceVersionWithExactValueInPathFilter>();
-    config.EnableAnnotations();
+    foreach (var description in provider.ApiVersionDescriptions)
+    {
+      config.SwaggerDoc(description.GroupName, new OpenApiInfo { Title = "Identity Api", Version = description.GroupName });
+    }
   });
 }
 builder.Services.AddCors(options =>
@@ -156,7 +163,6 @@ builder.Services.Configure<DataProtectionTokenProviderOptions>(o =>
 #region authentication
 builder.Services.AddQuartz(options =>
 {
-  options.SchedulerName = $"QuartzScheduler-{Guid.NewGuid()}";
   options.UseSimpleTypeLoader();
   options.UseInMemoryStore();
 });
@@ -322,7 +328,10 @@ if (app.Environment.IsDevelopment())
   app.UseSwagger();
   app.UseSwaggerUI(config =>
   {
-    config.SwaggerEndpoint("/swagger/v1.0/swagger.json", "Identity API v1.0");
+    foreach (var description in app.DescribeApiVersions())
+    {
+      config.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", $"Identity API {description.GroupName}");
+    }
   });
   app.UseDeveloperExceptionPage();
 }

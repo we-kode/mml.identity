@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Identity.Application.Contracts;
 using Identity.Application.IdentityConstants;
 using Identity.Application.Services;
@@ -20,6 +21,7 @@ namespace Identity.Controllers
 {
   [Route("/api/v{version:apiVersion}/identity/connect")]
   [ApiController]
+  [ApiVersion("1.0")]
   public class AuthenticationController(IIdentityRepository identityRepository, IClientRepository clientRepository, ApplicationService applicationService) : Controller
   {
 

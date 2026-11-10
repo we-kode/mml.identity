@@ -234,9 +234,9 @@ namespace IdentityService.Test
     }
 
     [Theory]
-    [InlineData(null, null)]
-    [InlineData("media.example.com", "media.example.com")]
-    public async Task Test_ServerName(string? serverName, string? expected)
+    [InlineData(null, null, "1.0")]
+    [InlineData("media.example.com", "media.example.com", "2.0")]
+    public async Task Test_ServerName(string? serverName, string? expected, string apiVersion)
     {
       var app = TestApplication.Build(serverName);
       var http = app.CreateClient();
@@ -257,9 +257,20 @@ namespace IdentityService.Test
       dynamic token = JObject.Parse(await (await http.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload), TestContext.Current.CancellationToken)).Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
       http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", (string)token.access_token);
 
-      dynamic registered = JObject.Parse(await http.GetStringAsync("/api/v1.0/identity/client", TestContext.Current.CancellationToken));
+      dynamic registered = JObject.Parse(await http.GetStringAsync($"/api/v{apiVersion}/identity/client", TestContext.Current.CancellationToken));
       Assert.True((bool)registered.registered);
       Assert.Equal(expected, (string?)registered.serverName);
+    }
+
+    [Theory]
+    [InlineData("1.0", HttpStatusCode.Forbidden)]
+    [InlineData("2.0", HttpStatusCode.Forbidden)]
+    [InlineData("3.0", HttpStatusCode.NotFound)]
+    public async Task Test_RegisterClient_ApiVersion(string apiVersion, HttpStatusCode expected)
+    {
+      var content = new StringContent("{\"base64PublicKey\": \"abc\", \"displayName\": \"abc\", \"deviceIdentifier\": \"iphone\"}", Encoding.UTF8, "application/json");
+      var result = await client.PostAsync($"/api/v{apiVersion}/identity/client/register/abcdef", content, TestContext.Current.CancellationToken);
+      Assert.Equal(expected, result.StatusCode);
     }
 
     [Theory]
