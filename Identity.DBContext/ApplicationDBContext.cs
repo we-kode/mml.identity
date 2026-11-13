@@ -6,12 +6,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Identity.DBContext
 {
-  public class ApplicationDBContext : IdentityDbContext<IdentityUser<long>, IdentityRole<long>, long>
+  public class ApplicationDBContext(DbContextOptions<ApplicationDBContext> options) : IdentityDbContext<IdentityUser<long>, IdentityRole<long>, long>(options)
   {
-    public ApplicationDBContext(DbContextOptions<ApplicationDBContext> options) : base(options)
-    {
-    }
-
     public DbSet<OpenIddictClientApplication> Applications => Set<OpenIddictClientApplication>();
 
     public DbSet<OpenIddictClientAuthorization> Authorizations => Set<OpenIddictClientAuthorization>();
@@ -26,6 +22,9 @@ namespace Identity.DBContext
     {
       modelBuilder.HasDefaultSchema("public");
       base.OnModelCreating(modelBuilder);
+
+      modelBuilder.Entity<IdentityPasskeyData>().HasNoKey();
+
       modelBuilder.UseOpenIddict<OpenIddictClientApplication, OpenIddictClientAuthorization, OpenIddictClientScope, OpenIddictClientToken, string>();
 
       foreach (var entity in modelBuilder.Model.GetEntityTypes())

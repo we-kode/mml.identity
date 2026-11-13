@@ -1,10 +1,10 @@
 ﻿using Asp.Versioning;
-using AutoMapper;
 using Identity.Application.Contracts;
 using Identity.Application.IdentityConstants;
 using Identity.Application.Models;
 using Identity.Application.Services;
 using Identity.Contracts;
+using Identity.Extensions;
 using Identity.Filters;
 using Identity.Sockets;
 using Microsoft.AspNetCore.Authorization;
@@ -24,28 +24,13 @@ namespace Identity.Controllers
 {
   [ApiController]
   [ApiVersion("1.0")]
+  [ApiVersion("2.0")]
   [Route("api/v{version:apiVersion}/identity/[controller]")]
-  public class ClientController : ControllerBase
+  public class ClientController(IClientRepository clientRepository,
+    IHubContext<RegisterClientHub> hubContext,
+    ClientApplicationService service,
+    IConfiguration configuration) : ControllerBase
   {
-    private readonly IClientRepository clientRepository;
-    private readonly IHubContext<RegisterClientHub> hubContext;
-    private readonly ClientApplicationService _service;
-    private readonly IMapper _mapper;
-
-    private readonly IConfiguration _configuration;
-
-    public ClientController(IClientRepository clientRepository,
-      IHubContext<RegisterClientHub> hubContext,
-      ClientApplicationService service,
-      IMapper mapper,
-      IConfiguration configuration)
-    {
-      this.clientRepository = clientRepository;
-      this.hubContext = hubContext;
-      _service = service;
-      _mapper = mapper;
-      _configuration = configuration;
-    }
 
     /// <summary>
     /// Loads a list of existing clients.
@@ -74,7 +59,13 @@ namespace Identity.Controllers
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
     public Clients List([FromBody] Contracts.TagFilter tagFilter, [FromQuery] string? filter, [FromQuery] int skip = Application.IdentityConstants.List.Skip, [FromQuery] int take = Application.IdentityConstants.List.Take)
     {
-      return clientRepository.ListClients(_mapper.Map<Application.Contracts.TagFilter>(tagFilter), filter, skip, take);
+      var appTagFilter = new Application.Contracts.TagFilter
+      {
+        Groups = tagFilter.Groups,
+        OnlyNew = tagFilter.OnlyNew,
+        Inactive = tagFilter.Inactive
+      };
+      return clientRepository.ListClients(appTagFilter, filter, skip, take);
     }
 
     /// <summary>
@@ -83,11 +74,11 @@ namespace Identity.Controllers
     /// <param name="ids">ids of the clients to be removed.</param>
     [HttpPost("deleteList")]
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
-    public IActionResult DeleteList([FromBody] IList<string> ids)
+    public async Task<IActionResult> DeleteList([FromBody] IList<string> ids)
     {
       foreach (var id in ids)
       {
-        clientRepository.DeleteClient(id);
+        await clientRepository.DeleteClient(id);
       }
 
       return Ok();
@@ -122,9 +113,9 @@ namespace Identity.Controllers
     /// <param name="id">id of the client to be removed.</param>
     [HttpDelete("{id}")]
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
-    public IActionResult Delete(string id)
+    public async Task<IActionResult> Delete(string id)
     {
-      clientRepository.DeleteClient(id);
+      await clientRepository.DeleteClient(id);
       return Ok();
     }
 
@@ -155,19 +146,19 @@ namespace Identity.Controllers
     [HttpPost()]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
-    public IActionResult Post([FromBody] ClientUpdateRequest request)
+    public async Task<IActionResult> Post([FromBody] ClientUpdateRequest request)
     {
       if (!clientRepository.ClientExists(request.ClientId.ToString()))
       {
         return NotFound();
       }
 
-      clientRepository.Update(_mapper.Map<Client>(request));
+      await clientRepository.Update(new Client(request.ClientId.ToString(), request.DisplayName, request.DeviceIdentifier, request.Groups));
       return Ok();
     }
 
     /// <summary>
-    /// Returns server connection settings for a client.
+    /// Returns server connection settings for a client including the server name clients should connect to, if configured.
     /// </summary>
     [HttpGet("connection_settings")]
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Admin)]
@@ -175,12 +166,13 @@ namespace Identity.Controllers
     {
       return new JsonResult(new
       {
-        ApiKey = _configuration.GetValue("APP_KEY", string.Empty)
+        ApiKey = configuration.GetValue("APP_KEY", string.Empty),
+        ServerName = ServerName()
       });
     }
 
     /// <summary>
-    /// Returns whether the current authenticated client is a registered client.
+    /// Returns whether the current authenticated client is a registered client and the server name clients should connect to, if configured.
     /// </summary>
     [HttpGet()]
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Client)]
@@ -190,7 +182,8 @@ namespace Identity.Controllers
 
       return new JsonResult(new
       {
-        Registered = clientRepository.ClientExists(clientId)
+        Registered = clientRepository.ClientExists(clientId),
+        ServerName = ServerName()
       });
     }
 
@@ -199,10 +192,10 @@ namespace Identity.Controllers
     /// </summary>
     [HttpPost("removeRegistration")]
     [Authorize(AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme, Policy = Roles.Client)]
-    public IActionResult RemoveRegistration()
+    public async Task<IActionResult> RemoveRegistration()
     {
       var clientId = HttpContext.User.GetClaim(Claims.Subject) ?? "";
-      clientRepository.DeleteClient(clientId);
+      await clientRepository.DeleteClient(clientId);
       return Ok();
     }
 
@@ -231,7 +224,7 @@ namespace Identity.Controllers
         return BadRequest();
       }
 
-      var client = await _service.CreateClient(request.Base64PublicKey, request.DisplayName, request.DeviceIdentifier).ConfigureAwait(false);
+      var client = await service.CreateClient(request.Base64PublicKey, request.DisplayName, request.DeviceIdentifier).ConfigureAwait(false);
       if (client == null)
       {
         return StatusCode(HttpStatusCodes.BusinessError, "CLIENT_CREATION_FAILED");
@@ -239,5 +232,7 @@ namespace Identity.Controllers
       await hubContext.Clients.Group(conId!).SendAsync("CLIENT_REGISTERED", client.ClientId).ConfigureAwait(false);
       return client;
     }
+
+    private string? ServerName() => configuration.GetServerName();
   }
 }

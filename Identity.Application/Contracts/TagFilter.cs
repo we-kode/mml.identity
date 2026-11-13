@@ -18,9 +18,13 @@ public class TagFilter
   /// </summary>
   public bool OnlyNew { get; set; }
 
+  /// <summary>
+  /// Show only inactive.
+  /// </summary>
+  public bool Inactive { get; set; }
 
   public TagFilter()
   {
-    Groups = new List<Guid>();
+    Groups = [];
   }
 }

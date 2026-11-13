@@ -1,19 +1,18 @@
 using Asp.Versioning;
+using Asp.Versioning.ApiExplorer;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
-using AutoMapper;
-using Identity.Application;
-using Identity.Application.Models;
 using Identity.Application.Services;
-using Identity.Contracts;
+using Identity.Application.Types;
+using Identity.Application.Utils;
 using Identity.DBContext;
 using Identity.DBContext.Models;
+using Identity.Extensions;
 using Identity.Filters;
 using Identity.Handlers;
 using Identity.Infrastructure;
 using Identity.Middleware;
 using Identity.Sockets;
-using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -21,22 +20,38 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
 using Quartz;
+using Rebus.Config;
+using Rebus.Transport.InMem;
 using ScottBrady91.AspNetCore.Identity;
+using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 using static OpenIddict.Server.OpenIddictServerEvents;
-using DbGroup = Identity.DBContext.Models.Group;
-using Group = Identity.Application.Models.Group;
 
 #pragma warning disable CA2208 // Instantiate argument exceptions correctly
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration
   .AddJsonFile(builder.Environment.IsEnvironment("Test") ? "./test.appsettings.json" : "/configs/appsettings.json");
+
+var instance = Identity.Application.IdentityConstants.Env.INSTANCE;
+Console.WriteLine($"Starting up instance '{instance}'");
+var serverName = builder.Configuration.GetServerName();
+if (!string.IsNullOrEmpty(serverName))
+{
+  Console.WriteLine($"Registered clients are moved to the server '{serverName}'.");
+}
+
+// If certs do not exists create them on start. Tests use ephemeral keys instead.
+if (!builder.Environment.IsEnvironment("Test"))
+{
+  CertificateHelper.Ensure(KeyType.Signing);
+  CertificateHelper.Ensure(KeyType.Encryption);
+}
 
 #region services
 // Add services to the container.
@@ -55,19 +70,24 @@ if (!builder.Environment.IsEnvironment("Test"))
 }
 builder.Services.AddApiVersioning(config =>
 {
-  config.DefaultApiVersion = new ApiVersion(1, 0);
-  config.AssumeDefaultVersionWhenUnspecified = true;
+  config.ApiVersionReader = new UrlSegmentApiVersionReader();
+}).AddMvc().AddApiExplorer(options =>
+{
+  options.GroupNameFormat = "'v'VV";
+  options.SubstituteApiVersionInUrl = true;
+  options.SubstitutionFormat = "VV";
 });
 builder.Services.AddEndpointsApiExplorer();
 if (builder.Environment.IsDevelopment())
 {
   // configuring Swagger/OpenAPI. More at https://aka.ms/aspnetcore/swashbuckle
-  builder.Services.AddSwaggerGen(config =>
+  builder.Services.AddSwaggerGen(config => config.EnableAnnotations());
+  builder.Services.AddOptions<SwaggerGenOptions>().Configure<IApiVersionDescriptionProvider>((config, provider) =>
   {
-    config.SwaggerDoc("v1.0", new OpenApiInfo { Title = "Identity Api", Version = "v1.0" });
-    config.OperationFilter<RemoveVersionParameterFilter>();
-    config.DocumentFilter<ReplaceVersionWithExactValueInPathFilter>();
-    config.EnableAnnotations();
+    foreach (var description in provider.ApiVersionDescriptions)
+    {
+      config.SwaggerDoc(description.GroupName, new OpenApiInfo { Title = "Identity Api", Version = description.GroupName });
+    }
   });
 }
 builder.Services.AddCors(options =>
@@ -82,39 +102,30 @@ builder.Services.AddCors(options =>
 
 if (!builder.Environment.IsEnvironment("Test"))
 {
-  builder.Services.AddMassTransit(mt =>
-  {
-    mt.UsingRabbitMq((context, cfg) =>
-    {
-      cfg.Host(builder.Configuration["MassTransit:Host"], builder.Configuration["MassTransit:VirtualHost"], h =>
-      {
+  // Configure Rebus with RabbitMQ transport
+  var mBusHost = builder.Configuration["MessageBus:Host"] ?? throw new ArgumentNullException("MessageBus:Host");
+  var mBusVirtualHost = builder.Configuration["MessageBus:VirtualHost"];
+  var mBusUser = builder.Configuration["MessageBus:User"] ?? throw new ArgumentNullException("MessageBus:User");
+  var mBusPassword = builder.Configuration["MessageBus:Password"] ?? throw new ArgumentNullException("MessageBus:Password");
 
-        h.Username(builder.Configuration["MassTransit:User"] ?? throw new ArgumentNullException("MassTransit:User"));
-        h.Password(builder.Configuration["MassTransit:Password"] ?? throw new ArgumentNullException("MassTransit:Password"));
-      });
-
-      cfg.ConfigureEndpoints(context);
-    });
-  });
-  builder.Services.AddOptions<MassTransitHostOptions>()
-  .Configure(options =>
+  var mBusConnection = $"amqp://{mBusUser}:{mBusPassword}@{mBusHost}";
+  if (!string.IsNullOrEmpty(mBusVirtualHost))
   {
-    options.WaitUntilStarted = bool.Parse(builder.Configuration["MassTransit:WaitUntilStarted"] ?? "False");
-    options.StartTimeout = TimeSpan.FromSeconds(double.Parse(builder.Configuration["MassTransit:StartTimeoutSeconds"] ?? "60"));
-    options.StopTimeout = TimeSpan.FromSeconds(double.Parse(builder.Configuration["MassTransit:StopTimeoutSeconds"] ?? "60"));
-  });
+    mBusConnection += $"/{mBusVirtualHost}";
+  }
+
+  builder.Services.AddRebus(configure =>
+      configure.Transport(t => t.UseRabbitMq(mBusConnection, "mml.identity.queue"))
+  );
 }
 else
 {
-  builder.Services.AddMassTransitTestHarness(x =>
-   {
-     x.AddDelayedMessageScheduler();
-     x.UsingInMemory((context, cfg) =>
-     {
-       cfg.UseDelayedMessageScheduler();
-       cfg.ConfigureEndpoints(context);
-     });
-   });
+  // Use Rebus in-memory transport for tests to avoid external RabbitMQ dependency
+  var inMemNetwork = new InMemNetwork();
+  builder.Services.AddSingleton(inMemNetwork);
+  builder.Services.AddRebus(config =>
+    config.Transport(t => t.UseInMemoryTransport(inMemNetwork, "identity-test-queue"))
+  );
 }
 #endregion
 
@@ -152,7 +163,6 @@ builder.Services.Configure<DataProtectionTokenProviderOptions>(o =>
 #region authentication
 builder.Services.AddQuartz(options =>
 {
-  options.SchedulerName = $"QuartzScheduler-{Guid.NewGuid()}";
   options.UseSimpleTypeLoader();
   options.UseInMemoryStore();
 });
@@ -166,14 +176,20 @@ builder.Services.AddAuthorizationBuilder()
   {
     policy.AddAuthenticationSchemes(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
     policy.RequireAuthenticatedUser();
-    policy.RequireClaim(OpenIddictConstants.Claims.Role, Identity.Application.IdentityConstants.Roles.Admin);
+    policy.RequireClaim(Claims.Role, Identity.Application.IdentityConstants.Roles.Admin);
   })
   .AddPolicy(Identity.Application.IdentityConstants.Roles.Client, policy =>
   {
     policy.AddAuthenticationSchemes(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
     policy.RequireAuthenticatedUser();
-    policy.RequireClaim(OpenIddictConstants.Claims.Role, Identity.Application.IdentityConstants.Roles.Client);
+    policy.RequireClaim(Claims.Role, Identity.Application.IdentityConstants.Roles.Client);
+  })
+  .AddPolicy(Identity.Application.IdentityConstants.Scopes.IdentityInternal, policy =>
+  {
+    policy.RequireAuthenticatedUser();
+    policy.RequireClaim(Claims.Scope, Identity.Application.IdentityConstants.Scopes.IdentityInternal);
   });
+
 builder.Services.AddOpenIddict()
     .AddCore(options =>
     {
@@ -192,11 +208,13 @@ builder.Services.AddOpenIddict()
 
       options.SetIssuer(new Uri(builder.Configuration["OpenId:Issuer"] ?? throw new ArgumentNullException("OpenId:Issuer")));
       options.SetTokenEndpointUris("api/v1.0/identity/connect/token")
-             .SetUserinfoEndpointUris("api/v1.0/identity/connect/userinfo")
-             .SetLogoutEndpointUris("api/v1.0/identity/connect/logout")
-             .SetIntrospectionEndpointUris("api/v1.0/identity/connect/introspect");
+             .SetUserInfoEndpointUris("api/v1.0/identity/connect/userinfo")
+             .SetEndSessionEndpointUris("api/v1.0/identity/connect/logout");
 
-      options.UseReferenceAccessTokens();
+      // Do not use refernce tokens. We will use jwts instead.
+      options.DisableAccessTokenEncryption();
+
+      // use reference tokens for refresh
       options.UseReferenceRefreshTokens();
 
       options.AddEventHandler<ApplyTokenResponseContext>(builder =>
@@ -208,19 +226,18 @@ builder.Services.AddOpenIddict()
 
       if (builder.Environment.IsEnvironment("Test"))
       {
-        options.AddEphemeralEncryptionKey()
-               .AddEphemeralSigningKey();
-      }
-      else
+        options.AddEphemeralSigningKey();
+        options.AddEphemeralEncryptionKey();
+      } else
       {
-        options.AddSigningCertificate(new System.Security.Cryptography.X509Certificates.X509Certificate2(builder.Configuration["OpenId:SigningCert"] ?? throw new ArgumentNullException("OpenId:SigningCert")))
-               .AddEncryptionCertificate(new System.Security.Cryptography.X509Certificates.X509Certificate2(builder.Configuration["OpenId:EncryptionCert"] ?? throw new ArgumentNullException("OpenId:EncryptionCert")));
+        options.AddSigningCertificate(CertificateHelper.Load(KeyType.Signing));
+        options.AddEncryptionCertificate(CertificateHelper.Load(KeyType.Encryption));
       }
 
       var openidBuilder = options.UseAspNetCore()
              .EnableTokenEndpointPassthrough()
-             .EnableUserinfoEndpointPassthrough()
-             .EnableLogoutEndpointPassthrough();
+             .EnableUserInfoEndpointPassthrough()
+             .EnableEndSessionEndpointPassthrough();
 
       if (builder.Environment.IsEnvironment("Test"))
       {
@@ -231,6 +248,7 @@ builder.Services.AddOpenIddict()
     {
       options.UseLocalServer();
       options.UseAspNetCore();
+      options.AddAudiences($"{Identity.Application.IdentityConstants.Scopes.IdentityService}/{instance?.ToLower()}");
     });
 #endregion
 
@@ -262,34 +280,25 @@ builder.Host.ConfigureContainer<ContainerBuilder>(cBuilder =>
 
     cBuilder.RegisterInstance(factory);
   }
-
-  // automapper
-  cBuilder.Register(context => new MapperConfiguration(cfg =>
-  {
-    cfg.CreateMap<ClientUpdateRequest, Client>();
-    cfg.CreateMap<DbGroup, Group>();
-    cfg.CreateMap<TagFilter, Identity.Application.Contracts.TagFilter>();
-  })).AsSelf().SingleInstance();
-  cBuilder.Register(c =>
-  {
-    //This resolves a new context that can be used later.
-    var context = c.Resolve<IComponentContext>();
-    var config = context.Resolve<MapperConfiguration>();
-    return config.CreateMapper(context.Resolve);
-  })
-  .As<IMapper>()
-  .InstancePerLifetimeScope();
 });
 #endregion
 
 #region kestrel
+builder.Services.AddTrustedForwardedHeaders(builder.Configuration);
+var tlsCert = builder.Configuration["TLS:Cert"];
+var useTls = !string.IsNullOrWhiteSpace(tlsCert);
+if (!useTls)
+{
+  Console.WriteLine("No 'TLS:Cert' configured. Listening on http, TLS has to be terminated by the reverse proxy.");
+}
 builder.WebHost.ConfigureKestrel(options =>
 {
   options.ListenAnyIP(5051, listenOptions =>
   {
-    var cert = builder.Configuration["TLS:Cert"] ?? throw new ArgumentNullException("TLS:Cert");
-    var pwd = builder.Configuration["TLS:Password"] ?? throw new ArgumentNullException("TLS:Password");
-    listenOptions.UseHttps(cert, pwd);
+    if (useTls)
+    {
+      listenOptions.UseHttps(tlsCert!, builder.Configuration["TLS:Password"]);
+    }
   });
 });
 #endregion
@@ -311,6 +320,7 @@ if (!roleManager.RoleExistsAsync(Identity.Application.IdentityConstants.Roles.Ad
 #endregion
 
 #region middleware configuration
+app.UseForwardedHeaders();
 app.UseApiKeyValidation();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -318,7 +328,10 @@ if (app.Environment.IsDevelopment())
   app.UseSwagger();
   app.UseSwaggerUI(config =>
   {
-    config.SwaggerEndpoint("/swagger/v1.0/swagger.json", "Identity API v1.0");
+    foreach (var description in app.DescribeApiVersions())
+    {
+      config.SwaggerEndpoint($"/swagger/{description.GroupName}/swagger.json", $"Identity API {description.GroupName}");
+    }
   });
   app.UseDeveloperExceptionPage();
 }
@@ -330,7 +343,10 @@ var localizationOptions = new RequestLocalizationOptions()
     .AddSupportedUICultures(supportedCultures);
 
 app.UseRequestLocalization(localizationOptions);
-app.UseHttpsRedirection();
+if (useTls)
+{
+  app.UseHttpsRedirection();
+}
 app.UseRouting();
 app.UseCors();
 app.UseAuthentication();
@@ -341,6 +357,19 @@ app.MapHub<RegisterClientHub>("/hub/client");
 
 // Create api clients if not exist
 using var scope = app.Services.CreateScope();
+var scopeManager = scope.ServiceProvider.GetRequiredService<IOpenIddictScopeManager>();
+if (await scopeManager.FindByNameAsync(Identity.Application.IdentityConstants.Scopes.IdentityInternal) is null)
+{
+  await scopeManager.CreateAsync(new OpenIddictScopeDescriptor
+  {
+    Name = Identity.Application.IdentityConstants.Scopes.IdentityInternal,
+    Resources =
+    {
+         $"{Identity.Application.IdentityConstants.Scopes.IdentityService}/{instance?.ToLower()}"
+    }
+  });
+}
+
 var manager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
 var apiClientsSection = app.Configuration.GetSection("ApiClients");
 foreach (IConfigurationSection apiClient in apiClientsSection.GetChildren())
@@ -355,13 +384,13 @@ foreach (IConfigurationSection apiClient in apiClientsSection.GetChildren())
       ClientSecret = secret,
       Permissions =
       {
-        Permissions.Endpoints.Introspection
+        Permissions.Endpoints.Token,
+        Permissions.GrantTypes.ClientCredentials,
+        Permissions.Prefixes.Scope + Identity.Application.IdentityConstants.Scopes.IdentityInternal,
       }
     });
   }
 }
 
 app.Run();
-
-public partial class Program { }
 #pragma warning restore CA2208 // Instantiate argument exceptions correctly

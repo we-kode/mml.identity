@@ -18,7 +18,7 @@ namespace Identity.DBContext.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("public")
-                .HasAnnotation("ProductVersion", "8.0.6")
+                .HasAnnotation("ProductVersion", "10.0.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -326,8 +326,8 @@ namespace Identity.DBContext.Migrations
                         .HasColumnName("subject");
 
                     b.Property<string>("Type")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
                         .HasColumnName("type");
 
                     b.HasKey("Id")
@@ -344,6 +344,54 @@ namespace Identity.DBContext.Migrations
                         .HasDatabaseName("ix_open_iddict_client_token_application_id_status_subject_type");
 
                     b.ToTable("open_iddict_client_token", "public");
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityPasskeyData", b =>
+                {
+                    b.Property<byte[]>("AttestationObject")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("attestation_object");
+
+                    b.Property<byte[]>("ClientDataJson")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("client_data_json");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsBackedUp")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_backed_up");
+
+                    b.Property<bool>("IsBackupEligible")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_backup_eligible");
+
+                    b.Property<bool>("IsUserVerified")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_user_verified");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<byte[]>("PublicKey")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("public_key");
+
+                    b.Property<long>("SignCount")
+                        .HasColumnType("bigint")
+                        .HasColumnName("sign_count");
+
+                    b.PrimitiveCollection<string[]>("Transports")
+                        .HasColumnType("text[]")
+                        .HasColumnName("transports");
+
+                    b.ToTable("identity_passkey_data", "public");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<long>", b =>

@@ -22,7 +22,7 @@ namespace Identity.Application.Models
     /// </summary>
     public Users()
     {
-      Items = new List<User>();
+      Items = [];
     }
   }
 }

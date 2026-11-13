@@ -43,39 +43,39 @@ namespace IdentityService.Test
 
       var payload = $"{{\"name\": \"{userName}\",\"password\": \"{password}\"}}";
       var content = new StringContent(payload, Encoding.UTF8, "application/json");
-      var result = await client.PostAsync("/api/v1.0/identity/user/create", content);
+      var result = await client.PostAsync("/api/v1.0/identity/user/create", content, TestContext.Current.CancellationToken);
       Assert.Equal(resultCode, result.StatusCode);
       if (result.IsSuccessStatusCode)
       {
         // read
-        var createdUser = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync());
+        var createdUser = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         var createdUserId = createdUser!.Id;
-        result = await client.GetAsync($"/api/v1.0/identity/user/{createdUserId!}");
-        var userResult = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync());
+        result = await client.GetAsync($"/api/v1.0/identity/user/{createdUserId!}", TestContext.Current.CancellationToken);
+        var userResult = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         Assert.True(result.IsSuccessStatusCode);
         Assert.Equal(createdUserId, userResult!.Id);
 
         // unique constraint
-        result = await client.PostAsync("/api/v1.0/identity/user/create", content);
+        result = await client.PostAsync("/api/v1.0/identity/user/create", content, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, result.StatusCode);
 
         // update
         payload = $"{{\"name\": \"{userName}abc\",\"password\": null}}";
         var uContent = new StringContent(payload, Encoding.UTF8, "application/json");
-        result = await client.PostAsync($"/api/v1.0/identity/user/{createdUserId}", uContent);
+        result = await client.PostAsync($"/api/v1.0/identity/user/{createdUserId}", uContent, TestContext.Current.CancellationToken);
         Assert.True(result.IsSuccessStatusCode);
-        result = await client.GetAsync($"/api/v1.0/identity/user/{createdUserId}");
-        userResult = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync());
+        result = await client.GetAsync($"/api/v1.0/identity/user/{createdUserId}", TestContext.Current.CancellationToken);
+        userResult = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         Assert.True(result.IsSuccessStatusCode);
         Assert.Equal($"{userName}abc", userResult!.Name);
         Assert.True(userResult.IsAdmin);
 
         //Delete
-        result = await client.DeleteAsync($"/api/v1.0/identity/user/{createdUserId}");
+        result = await client.DeleteAsync($"/api/v1.0/identity/user/{createdUserId}", TestContext.Current.CancellationToken);
         Assert.True(result.IsSuccessStatusCode);
-        result = await client.GetAsync($"/api/v1.0/identity/user/{createdUserId}");
+        result = await client.GetAsync($"/api/v1.0/identity/user/{createdUserId}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, result.StatusCode);
-        result = await client.DeleteAsync($"/api/v1.0/identity/user/{createdUserId}");
+        result = await client.DeleteAsync($"/api/v1.0/identity/user/{createdUserId}", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NotFound, result.StatusCode);
 
         var serviceScope = application.Services.CreateScope();
@@ -83,7 +83,7 @@ namespace IdentityService.Test
         var adminUser = await userManager.FindByIdAsync(1.ToString());
         await (userManager.RemoveFromRoleAsync(adminUser!, Identity.Application.IdentityConstants.Roles.Admin));
         await Authorize();
-        result = await client.PostAsync("/api/v1.0/identity/user/create", content);
+        result = await client.PostAsync("/api/v1.0/identity/user/create", content, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Forbidden, result.StatusCode);
         await userManager.AddToRoleAsync(adminUser!, Identity.Application.IdentityConstants.Roles.Admin);
       }
@@ -103,7 +103,7 @@ namespace IdentityService.Test
 
       var payload = $"[ 42,43,44]";
       var uContent = new StringContent(payload, Encoding.UTF8, "application/json");
-      var result = await client.PostAsync($"/api/v1.0/identity/user/deleteList", uContent);
+      var result = await client.PostAsync($"/api/v1.0/identity/user/deleteList", uContent, TestContext.Current.CancellationToken);
       Assert.True(result.IsSuccessStatusCode);
 
       Assert.False(userManager.Users.Any(u => u.Id == 42 || u.Id == 43 || u.Id == 44));
@@ -121,19 +121,19 @@ namespace IdentityService.Test
 
       var payload = $"{{\"name\": \"{newUsername}\"}}";
       var content = new StringContent(payload, Encoding.UTF8, "application/json");
-      var result = await client.PostAsync("/api/v1.0/identity/user", content);
+      var result = await client.PostAsync("/api/v1.0/identity/user", content, TestContext.Current.CancellationToken);
 
       Assert.Equal(code, result.StatusCode);
 
       if (result.IsSuccessStatusCode)
       {
-        result = await client.GetAsync("/api/v1.0/identity/connect/userinfo");
-        var userSettings = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync());
+        result = await client.GetAsync("/api/v1.0/identity/connect/userinfo", TestContext.Current.CancellationToken);
+        var userSettings = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         Assert.Equal(newUsername, userSettings!.Name);
 
         payload = $"{{\"name\": \"{TestApplication.UserName}\"}}";
         content = new StringContent(payload, Encoding.UTF8, "application/json");
-        await client.PostAsync("/api/v1.0/identity/user", content);
+        await client.PostAsync("/api/v1.0/identity/user", content, TestContext.Current.CancellationToken);
       }
     }
 
@@ -151,7 +151,7 @@ namespace IdentityService.Test
 
       var payload = $"{{\"name\": \"{newUsername}\", \"oldPassword\": \"{oldPassword}\", \"newPassword\": \"{newPassword}\"}}";
       var content = new StringContent(payload, Encoding.UTF8, "application/json");
-      var result = await client.PostAsync("/api/v1.0/identity/user", content);
+      var result = await client.PostAsync("/api/v1.0/identity/user", content, TestContext.Current.CancellationToken);
 
       Assert.Equal(code, result.StatusCode);
 
@@ -159,7 +159,7 @@ namespace IdentityService.Test
       {
         payload = $"{{\"name\": \"{TestApplication.UserName}\", \"oldPassword\": \"pass0987654321\", \"newPassword\": \"{TestApplication.Password}\"}}";
         content = new StringContent(payload, Encoding.UTF8, "application/json");
-        await client.PostAsync("/api/v1.0/identity/user", content);
+        await client.PostAsync("/api/v1.0/identity/user", content, TestContext.Current.CancellationToken);
       }
     }
 
@@ -179,25 +179,26 @@ namespace IdentityService.Test
       };
 
       // set tokens
-      var result = await (await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload))).Content.ReadAsStringAsync();
+      var tokenResponse = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload), TestContext.Current.CancellationToken);
+      var result = await tokenResponse.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
       dynamic token = JObject.Parse(result);
       newRefreshToken = token.refresh_token;
       Assert.NotEqual(newRefreshToken, refreshToken);
       payload.Remove(param);
       payload.Add(new KeyValuePair<string, string>("refresh_token", newRefreshToken));
-      var result2 = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload));
+      var result2 = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload), TestContext.Current.CancellationToken);
       Assert.True(result2.IsSuccessStatusCode);
-      await Task.Delay(10000);
-      result2 = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload));
+      await Task.Delay(10000, TestContext.Current.CancellationToken);
+      result2 = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload), TestContext.Current.CancellationToken);
       Assert.False(result2.IsSuccessStatusCode);
     }
 
     [Fact]
     public async Task Test_UserInfo()
     {
-      var result = await client.GetAsync("/api/v1.0/identity/connect/userinfo");
+      var result = await client.GetAsync("/api/v1.0/identity/connect/userinfo", TestContext.Current.CancellationToken);
       result.EnsureSuccessStatusCode();
-      var userSettings = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync());
+      var userSettings = JsonConvert.DeserializeObject<User>(await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
       Assert.Equal(TestApplication.UserName, userSettings!.Name);
     }
 
@@ -208,15 +209,15 @@ namespace IdentityService.Test
 
       client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "xyz");
 
-      var result = await client.PostAsync("/api/v1.0/identity/connect/logout", new FormUrlEncodedContent([]));
+      var result = await client.PostAsync("/api/v1.0/identity/connect/logout", new FormUrlEncodedContent([]), TestContext.Current.CancellationToken);
       Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
 
       client.DefaultRequestHeaders.Authorization = originalAuthorization;
 
-      result = await client.PostAsync("/api/v1.0/identity/connect/logout", new FormUrlEncodedContent([]));
+      result = await client.PostAsync("/api/v1.0/identity/connect/logout", new FormUrlEncodedContent([]), TestContext.Current.CancellationToken);
       Assert.Equal(HttpStatusCode.OK, result.StatusCode);
 
-      result = await client.GetAsync("/api/v1.0/identity/connect/userinfo");
+      result = await client.GetAsync("/api/v1.0/identity/connect/userinfo", TestContext.Current.CancellationToken);
       Assert.Equal(HttpStatusCode.Unauthorized, result.StatusCode);
     }
 
@@ -233,9 +234,9 @@ namespace IdentityService.Test
       };
 
       // set tokens
-      var result = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload));
+      var result = await client.PostAsync("/api/v1.0/identity/connect/token", new FormUrlEncodedContent(payload), TestContext.Current.CancellationToken);
       Assert.True(result.IsSuccessStatusCode);
-      dynamic token = JObject.Parse(await result.Content.ReadAsStringAsync());
+      dynamic token = JObject.Parse(await result.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
       refreshToken = token.refresh_token;
       string accessToken = token.access_token;
       client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);

@@ -17,8 +17,6 @@
     "Password": "<password>"
   },
   "OpenId": {
-    "EncryptionCert": "/certs/identity.encrypt.pfx",
-    "SigningCert": "/certs/identity.sign.pfx",
     "AccessTokenLifetimeMinutes": "60",
     "RefreshTokenLifetimeMinutes": "43200",
     "RefreshTokenReuseLeewaySeconds": "10",
@@ -30,7 +28,7 @@
     "IdentityConnection": "Server=wekode.mml.db;Port=5432;Database=identity;User Id=identity;Password=identity;",
     "DistributedCache": "wekode.mml.cache:7379,ssl=true,password=<password>"
   },
-  "MassTransit": {
+  "MessageBus": {
     "Host": "wekode.mml.mbus",
     "User": "guest",
     "Password": "guest",

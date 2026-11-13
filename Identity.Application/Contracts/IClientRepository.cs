@@ -22,7 +22,7 @@ namespace Identity.Application.Contracts
     /// Deletes one client
     /// </summary>
     /// <param name="id">Id of client to be deleted</param>
-    void DeleteClient(string id);
+    Task DeleteClient(string id);
 
     /// <summary>
     /// Lists the ids of the existing admin clients
@@ -59,7 +59,7 @@ namespace Identity.Application.Contracts
     /// </summary>
     /// <param name="client">Client to be updated</param>
     /// <returns>True, if update successfull</returns>
-    void Update(Client client);
+    Task Update(Client client);
 
     /// <summary>
     /// Determines if client exists

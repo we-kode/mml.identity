@@ -3,42 +3,32 @@ using Identity.Application.Contracts;
 using Identity.Application.Models;
 using Identity.DBContext;
 using Identity.DBContext.Models;
-using OpenIddict.Abstractions;
+using Messages.Events;
+using Microsoft.EntityFrameworkCore;
+using Rebus.Bus;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+using static OpenIddict.Abstractions.OpenIddictConstants;
 using DBGroup = Identity.DBContext.Models.Group;
-using AutoMapper;
 
 namespace Identity.Infrastructure
 {
-  public class SqlClientRepository : IClientRepository
+  public class SqlClientRepository(
+    Func<ApplicationDBContext> contextFactory,
+    IGroupRepository groupRepository,
+    IBus eventBus
+    ) : IClientRepository
   {
-    private readonly Func<ApplicationDBContext> _contextFactory;
-    private readonly IGroupRepository _groupRepository;
-    private readonly IMapper _mapper;
-
-    public SqlClientRepository(
-      Func<ApplicationDBContext> contextFactory,
-      IGroupRepository groupRepository,
-      IMapper mapper
-    )
-    {
-      _contextFactory = contextFactory;
-      _groupRepository = groupRepository;
-      _mapper = mapper;
-    }
-
     public Clients ListClients(TagFilter tagFilter, string? filter, int skip, int take)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var query = context.Applications
         .Include(app => app.Groups)
         .Where(app => !string.IsNullOrEmpty(app.Permissions))
-        .Where(app => EF.Functions.Like(app.Permissions!, $"%{OpenIddictConstants.GrantTypes.ClientCredentials}%"))
+        .Where(app => !string.IsNullOrWhiteSpace(app.DeviceIdentifier))
         .Where(app => string.IsNullOrEmpty(filter) || EF.Functions.ILike(app.DisplayName ?? "", $"%{filter}%"));
 
       if (tagFilter.Groups.Count > 0)
@@ -50,6 +40,11 @@ namespace Identity.Infrastructure
       if (tagFilter.OnlyNew)
       {
         query = query.Where(c => c.RegistrationDate >= oldestDate);
+      }
+
+      if (tagFilter.Inactive)
+      {
+        query = query.Where(c => c.LastTokenRefreshDate < oldestDate.AddYears(-1));
       }
 
       var count = query.Count();
@@ -67,9 +62,9 @@ namespace Identity.Infrastructure
       };
     }
 
-    public void DeleteClient(string id)
+    public async Task DeleteClient(string id)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var client = context.Applications.FirstOrDefault(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == id);
       if (client == null)
       {
@@ -79,13 +74,13 @@ namespace Identity.Infrastructure
       context.Tokens.RemoveRange(context.Tokens.Where(token => token.Application == client));
       context.Authorizations.RemoveRange(context.Authorizations.Where(authorization => authorization.Application == client));
       context.Applications.Remove(client);
-
       context.SaveChanges();
+      await eventBus.Publish(new ClientStateUpdated(id));
     }
 
-    public void Update(Client client)
+    public async Task Update(Client client)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
 
       var clientToBeUpdated = context.Applications
         .Include(app => app.Groups)
@@ -95,7 +90,7 @@ namespace Identity.Infrastructure
       clientToBeUpdated.DeviceIdentifier = client.DeviceIdentifier;
 
       var addedGroups = client.Groups
-        .Where(g => _groupRepository.GroupExists(g.Id).GetAwaiter().GetResult())
+        .Where(g => groupRepository.GroupExists(g.Id).GetAwaiter().GetResult())
         .Where(g => !clientToBeUpdated.Groups.Select(cg => cg.Id).Contains(g.Id))
         .Select(g => new DBGroup
         {
@@ -119,20 +114,19 @@ namespace Identity.Infrastructure
         clientToBeUpdated.Groups.Remove(deletedGroup);
       }
 
-      context.Tokens.RemoveRange(context.Tokens.Where(token => token.Application == clientToBeUpdated));
-
       context.SaveChanges();
+      await eventBus.Publish(new ClientStateUpdated(client.ClientId));
     }
 
     public string? GetPublicKey(string clientId)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       return context.Applications.FirstOrDefault(app => app.ClientId == clientId)?.PublicKey;
     }
 
     public async Task CreateClient(string clientId, string clientSecret, string b64PublicKey, string displayName, string deviceIdentifier)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
 
       var defaultGroups = context.Groups
         .Where(g => g.IsDefault)
@@ -141,14 +135,14 @@ namespace Identity.Infrastructure
       var client = new OpenIddictClientApplication
       {
         ClientId = clientId,
-        ClientSecret = Crypto.HashPassword(clientSecret),
+        ClientSecret = PasswordHasher.HashPassword(clientSecret),
         PublicKey = b64PublicKey,
         Permissions = JsonSerializer.Serialize(new[]
         {
-          OpenIddictConstants.Permissions.Endpoints.Token,
-          OpenIddictConstants.Permissions.GrantTypes.ClientCredentials
+          Permissions.Endpoints.Token,
+          Permissions.GrantTypes.ClientCredentials
         }),
-        ClientType = OpenIddictConstants.ClientTypes.Confidential,
+        ClientType = ClientTypes.Confidential,
         DisplayName = displayName,
         DeviceIdentifier = deviceIdentifier,
         Groups = defaultGroups,
@@ -157,17 +151,18 @@ namespace Identity.Infrastructure
 
       context.Applications.Add(client);
       await context.SaveChangesAsync().ConfigureAwait(false);
+      await eventBus.Publish(new ClientStateUpdated(client.ClientId));
     }
 
     public bool AdminAppExists()
     {
-      using var context = _contextFactory();
-      return context.Applications.Any(app => !string.IsNullOrEmpty(app.Permissions) && EF.Functions.Like(app.Permissions ?? "", $"%{OpenIddictConstants.GrantTypes.Password}%"));
+      using var context = contextFactory();
+      return context.Applications.Any(app => !string.IsNullOrEmpty(app.Permissions) && EF.Functions.Like(app.Permissions ?? "", $"%{GrantTypes.Password}%"));
     }
 
     public async Task<Guid> CreateAdminApp()
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var clientId = Guid.NewGuid();
       var client = new OpenIddictClientApplication
       {
@@ -175,13 +170,13 @@ namespace Identity.Infrastructure
         DisplayName = "Admin App",
         Permissions = JsonSerializer.Serialize(new[]
         {
-          OpenIddictConstants.Permissions.Endpoints.Token,
-          OpenIddictConstants.Permissions.Endpoints.Logout,
-          OpenIddictConstants.Permissions.GrantTypes.Password,
-          OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
-          OpenIddictConstants.Scopes.OfflineAccess,
+          Permissions.Endpoints.Token,
+          Permissions.Endpoints.EndSession,
+          Permissions.GrantTypes.Password,
+          Permissions.GrantTypes.RefreshToken,
+          Scopes.OfflineAccess
         }),
-        ClientType = OpenIddictConstants.ClientTypes.Public
+        ClientType = ClientTypes.Public
       };
       context.Applications.Add(client);
       await context.SaveChangesAsync().ConfigureAwait(false);
@@ -190,22 +185,21 @@ namespace Identity.Infrastructure
 
     public IList<Guid> ListAdminClientIds()
     {
-      using var context = _contextFactory();
-      return context.Applications
-        .Where(app => EF.Functions.ILike(app.Permissions ?? "", $"%{OpenIddictConstants.Permissions.GrantTypes.Password}%"))
-        .Select(app => Guid.Parse(app.ClientId!))
-        .ToList();
+      using var context = contextFactory();
+      return [.. context.Applications
+        .Where(app => EF.Functions.ILike(app.Permissions ?? "", $"%{Permissions.GrantTypes.Password}%"))
+        .Select(app => Guid.Parse(app.ClientId!))];
     }
 
     public bool ClientExists(string clientId)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       return context.Applications.Any(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == clientId);
     }
 
     public Client GetClient(string id)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var client = context.Applications
         .Include(app => app.Groups)
         .First(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == id);
@@ -214,7 +208,7 @@ namespace Identity.Infrastructure
 
     public void UpdateTokenRequestDate(string clientId)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var client = context.Applications.FirstOrDefault(app => !string.IsNullOrEmpty(app.ClientId) && app.ClientId == clientId);
       if (client == null)
       {
@@ -230,9 +224,9 @@ namespace Identity.Infrastructure
         client.ClientId ?? "",
         client.DisplayName ?? "",
         client.DeviceIdentifier,
-        client.Groups.Select(g => new Application.Models.Group(
+        [.. client.Groups.Select(g => new Application.Models.Group(
           g.Id, g.Name, g.IsDefault
-        )).ToArray())
+        ))])
       {
         LastTokenRefreshDate = client.LastTokenRefreshDate
       };
@@ -240,19 +234,18 @@ namespace Identity.Infrastructure
 
     public bool IsApiClient(string clientId, string clientSecret)
     {
-      using var context = _contextFactory();
-      var client = context.Applications.FirstOrDefault(app =>
-        EF.Functions.ILike(app.Permissions ?? "", $"%{OpenIddictConstants.Permissions.Endpoints.Introspection}%") &&
+      using var context = contextFactory();
+      var client = context.Applications.FirstOrDefault(app => app.ClientType == ClientTypes.Confidential && string.IsNullOrWhiteSpace(app.DeviceIdentifier) &&
         !string.IsNullOrEmpty(app.ClientId) && app.ClientId == clientId
       );
-      return client != null && Crypto.VerifyHashedPassword(client.ClientSecret, clientSecret);
+      return client != null && PasswordHasher.VerifyHashedPassword(client.ClientSecret, clientSecret);
     }
 
     public IList<string> GetApiClients()
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var clients = context.Applications
-        .Where(app => EF.Functions.ILike(app.Permissions ?? "", $"%{OpenIddictConstants.Permissions.Endpoints.Introspection}%"))
+        .Where(app => app.ClientType == ClientTypes.Confidential && string.IsNullOrWhiteSpace(app.DeviceIdentifier))
         .Select(app => app.ClientId)
         .ToList();
 
@@ -261,7 +254,7 @@ namespace Identity.Infrastructure
 
     public void Assign(List<string> clients, List<Guid> initGroups, List<Guid> groups)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var cAssing = context.Applications
         .Include(app => app.Groups)
         .Where(app => !string.IsNullOrEmpty(app.ClientId) && clients.Contains(app.ClientId)).ToList();
@@ -269,14 +262,14 @@ namespace Identity.Infrastructure
        .Where(g => groups.Contains(g.Id));
       foreach (var client in cAssing)
       {
-        client.Groups = client.Groups.Where(cg => initGroups.Contains(cg.Id) && !groups.Contains(cg.Id)).Union(gAssign).ToList();
+        client.Groups = [.. client.Groups.Where(cg => initGroups.Contains(cg.Id) && !groups.Contains(cg.Id)).Union(gAssign)];
       }
       context.SaveChanges();
     }
 
     public Groups GetAssignedGroups(List<string> clients)
     {
-      using var context = _contextFactory();
+      using var context = contextFactory();
       var groups = context.Groups
         .Where(g => g.Clients.Any(c => !string.IsNullOrEmpty(c.ClientId) && clients.Contains(c.ClientId)));
 
@@ -285,7 +278,7 @@ namespace Identity.Infrastructure
       return new Groups
       {
         TotalCount = count,
-        Items = _mapper.ProjectTo<Application.Models.Group>(groups).ToList(),
+        Items = [.. groups.Select(g => new Application.Models.Group(g.Id, g.Name, g.IsDefault))],
       };
     }
   }

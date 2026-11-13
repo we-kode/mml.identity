@@ -7,17 +7,8 @@ namespace Identity.CLI
   /// <summary>
   /// Functions to create one admin user
   /// </summary>
-  public class AdminUser
+  public class AdminUser(IIdentityRepository identiytRepository, IClientRepository clientRepository)
   {
-
-    private readonly IIdentityRepository _identityRepository;
-    private readonly IClientRepository _clientRepository;
-
-    public AdminUser(IIdentityRepository identiytRepository, IClientRepository clientRepository)
-    {
-      _identityRepository = identiytRepository;
-      _clientRepository = clientRepository;
-    }
 
     /// <summary>
     /// Creates one admin user
@@ -32,7 +23,7 @@ namespace Identity.CLI
         Console.WriteLine("Username can not be empty. Please username:");
       }
 
-      if (await _identityRepository.UserExists(userName).ConfigureAwait(false))
+      if (await identiytRepository.UserExists(userName).ConfigureAwait(false))
       {
         Console.WriteLine("User already exists. Start again.", ConsoleColor.Red);
         return false;
@@ -70,8 +61,8 @@ namespace Identity.CLI
         return false;
       }
 
-      var user = await _identityRepository.CreateNewUser(userName, password).ConfigureAwait(false);
-      await _identityRepository.UpdateUserPassword(user.Id, password, password).ConfigureAwait(false);
+      var user = await identiytRepository.CreateNewUser(userName, password).ConfigureAwait(false);
+      await identiytRepository.UpdateUserPassword(user.Id, password, password).ConfigureAwait(false);
       Console.WriteLine($"User {userName} created.");
       return true;
     }
@@ -81,13 +72,13 @@ namespace Identity.CLI
     /// </summary>
     public async Task CreateAdminApp()
     {
-      if (_clientRepository.AdminAppExists())
+      if (clientRepository.AdminAppExists())
       {
         Console.WriteLine("Admin app exists already skipping.");
         return;
       }
 
-      var clientId = await _clientRepository.CreateAdminApp().ConfigureAwait(false);
+      var clientId = await clientRepository.CreateAdminApp().ConfigureAwait(false);
       Console.WriteLine("Admin app created. Please copy id into the client application.");
       Console.WriteLine(clientId);
     }

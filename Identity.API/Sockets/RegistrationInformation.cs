@@ -3,27 +3,27 @@
   /// <summary>
   /// Contains the information one client needs to be registered
   /// </summary>
-  public class RegistrationInformation
+  /// <remarks>
+  /// Constructs one instance
+  /// </remarks>
+  /// <param name="token">The actual registration token</param>
+  /// <param name="appKey">The app key needed to send request to the api</param>
+  /// <param name="serverName">The server name clients should connect to or null, if not configured</param>
+  public class RegistrationInformation(string token, string appKey, string? serverName = null)
   {
     /// <summary>
     /// The actual registration token
     /// </summary>
-    public string Token { get; set; }
+    public string Token { get; set; } = token;
 
     /// <summary>
     /// The app key needed to send request to the api.
     /// </summary>
-    public string AppKey { get; set; }
+    public string AppKey { get; set; } = appKey;
 
     /// <summary>
-    /// Constructs one instance
+    /// The server name in the format host[:port] clients should connect to or null, if not configured.
     /// </summary>
-    /// <param name="token">The actual registration token</param>
-    /// <param name="appKey">The app key needed to send request to the api</param>
-    public RegistrationInformation(string token, string appKey)
-    {
-      Token = token;
-      AppKey = appKey;
-    }
+    public string? ServerName { get; set; } = serverName;
   }
 }
