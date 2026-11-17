@@ -64,7 +64,7 @@ namespace Identity.Controllers
         }
         var claimsPrincipal = new ClaimsPrincipal(identity);
         claimsPrincipal.SetScopes(request.GetScopes());
-        claimsPrincipal.SetResources($"{Application.IdentityConstants.Scopes.MediaService}/{Env.INSTANCE}", $"{Application.IdentityConstants.Scopes.IdentityService}/{Env.INSTANCE}");
+        claimsPrincipal.SetResources($"{Application.IdentityConstants.Scopes.MediaService}/{Env.INSTANCE.ToLower()}", $"{Application.IdentityConstants.Scopes.IdentityService}/{Env.INSTANCE.ToLower()}");
         claimsPrincipal.SetDestinations(static claim => claim.Type switch
         {
           // Allow the "name" claim to be stored in both the access and identity tokens
@@ -139,7 +139,7 @@ namespace Identity.Controllers
 
         var claimsPrincipal = new ClaimsPrincipal(client);
         claimsPrincipal.SetScopes(request.GetScopes());
-        claimsPrincipal.SetResources($"{Application.IdentityConstants.Scopes.MediaService}/{Env.INSTANCE}", $"{Application.IdentityConstants.Scopes.IdentityService}/{Env.INSTANCE}");
+        claimsPrincipal.SetResources($"{Application.IdentityConstants.Scopes.MediaService}/{Env.INSTANCE.ToLower()}", $"{Application.IdentityConstants.Scopes.IdentityService}/{Env.INSTANCE.ToLower()}");
         claimsPrincipal.SetDestinations(static claim => claim.Type switch
         {
           // Allow the "name" claim to be stored in both the access and identity tokens

@@ -108,11 +108,7 @@ if (!builder.Environment.IsEnvironment("Test"))
   var mBusUser = builder.Configuration["MessageBus:User"] ?? throw new ArgumentNullException("MessageBus:User");
   var mBusPassword = builder.Configuration["MessageBus:Password"] ?? throw new ArgumentNullException("MessageBus:Password");
 
-  var mBusConnection = $"amqp://{mBusUser}:{mBusPassword}@{mBusHost}";
-  if (!string.IsNullOrEmpty(mBusVirtualHost))
-  {
-    mBusConnection += $"/{mBusVirtualHost}";
-  }
+  var mBusConnection = MessageBusConnection.Create(mBusHost, mBusUser, mBusPassword, mBusVirtualHost);
 
   builder.Services.AddRebus(configure =>
       configure.Transport(t => t.UseRabbitMq(mBusConnection, "mml.identity.queue"))
