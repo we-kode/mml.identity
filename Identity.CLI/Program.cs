@@ -1,6 +1,7 @@
 ﻿using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Identity.Application.Services;
+using Identity.Application.Utils;
 using Identity.DBContext;
 using Identity.Infrastructure;
 using Microsoft.AspNetCore.Identity;
@@ -60,11 +61,7 @@ namespace Identity.CLI
             var mBusUser = config["MessageBus:User"] ?? throw new ArgumentNullException("MessageBus:User");
             var mBusPassword = config["MessageBus:Password"] ?? throw new ArgumentNullException("MessageBus:Password");
 
-            var mBusConnection = $"amqp://{mBusUser}:{mBusPassword}@{mBusHost}";
-            if (!string.IsNullOrEmpty(mBusVirtualHost))
-            {
-              mBusConnection += $"/{mBusVirtualHost}";
-            }
+            var mBusConnection = MessageBusConnection.Create(mBusHost, mBusUser, mBusPassword, mBusVirtualHost);
 
             services.AddRebus(configure =>
                 configure.Transport(t => t.UseRabbitMq(mBusConnection, "identity-queue"))
