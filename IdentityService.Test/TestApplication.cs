@@ -32,7 +32,8 @@ namespace IdentityService.Test
       oAuthCLient.Permissions.Add("scp:offline_access");
 
       Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Test");
-      Environment.SetEnvironmentVariable("INSTANCE", "test");
+      // Mixed case ensures that issued tokens match the lower case audiences of the validation.
+      Environment.SetEnvironmentVariable("INSTANCE", "Test.Instance");
 
       var memoryDBName = Guid.NewGuid().ToString();
 
